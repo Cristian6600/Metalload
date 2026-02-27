@@ -18,9 +18,13 @@ class ExportService:
     """Servicio de exportación de datos de clientes"""
     
     def __init__(self):
-        self.api_base_url = getattr(settings, 'MAIN_API_BASE_URL', 'https://diotest.letran.com.co')
+        self.api_base_url = getattr(settings, 'EXPORT_API_BASE_URL', 'https://diotest.letran.com.co')
         self.export_dir = Path(settings.MEDIA_ROOT) / 'exports'
         self.export_dir.mkdir(exist_ok=True)
+        
+        # Desactivar verificación SSL para servidores de prueba
+        self.session = requests.Session()
+        self.session.verify = False
     
     def fetch_client_data(self, client_id: int) -> dict:
         """
@@ -34,7 +38,7 @@ class ExportService:
         """
         try:
             url = f"{self.api_base_url}/clientes/export/?id_clie={client_id}"
-            response = requests.get(url, timeout=30)
+            response = self.session.get(url, timeout=30)  # Usar self.session con SSL desactivado
             response.raise_for_status()
             
             if response.status_code == 200:

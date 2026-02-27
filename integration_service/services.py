@@ -21,6 +21,9 @@ class MainAPIClient:
         self.api_key = api_key or getattr(settings, 'MAIN_API_KEY', '')
         self.session = requests.Session()
         
+        # Desactivar verificación SSL para servidores de prueba
+        self.session.verify = False
+        
         if self.api_key:
             self.session.headers.update({
                 'Authorization': f'Token {self.api_key}',
