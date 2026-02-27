@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-g2edttjmp3vfx!7tb@jw50t@u07g!0oi9wvib_+)%e7@%cjd&p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['']
 
 
 # Application definition
@@ -141,12 +141,12 @@ REST_FRAMEWORK = {
 }
 
 # Configuración del Servicio de Integración
-MAIN_API_BASE_URL = 'http://127.0.0.1:8080'  # URL de la aplicación principal (cambiar en producción)
+MAIN_API_BASE_URL = 'https://diotest.letran.com.co/'  # URL de la aplicación principal (cambiar en producción)
 MAIN_API_ENDPOINT = '/api/v1/asignar/'  # Endpoint específico para asignar clientes
 MAIN_API_KEY = 'c97f52b2b6fdf6aac75893fbd677f1d8fd6c1013'  # Token de prueba para autenticación
 
 # Configuración de Exportación
-EXPORT_API_BASE_URL = 'http://127.0.0.1:8080'  # URL para exportación de clientes
+EXPORT_API_BASE_URL = 'https://diotest.letran.com.co/'  # URL para exportación de clientes
 
 # Configuración de archivos
 MEDIA_URL = '/media/'
