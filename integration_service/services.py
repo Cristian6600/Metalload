@@ -17,7 +17,7 @@ class MainAPIClient:
     """Cliente para comunicarse con la API principal"""
     
     def __init__(self, base_url: str = None, api_key: str = None):
-        self.base_url = base_url or getattr(settings, 'MAIN_API_BASE_URL', 'http://localhost:8000')
+        self.base_url = base_url or getattr(settings, 'MAIN_API_BASE_URL', 'https://diotest.letran.com.co')
         self.api_key = api_key or getattr(settings, 'MAIN_API_KEY', '')
         self.session = requests.Session()
         
