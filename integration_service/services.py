@@ -70,7 +70,11 @@ class FileProcessor:
     """Procesador de archivos de clientes"""
     
     def __init__(self):
-        self.api_client = MainAPIClient()
+        # Usar la URL correcta de settings
+        self.api_client = MainAPIClient(
+            base_url=getattr(settings, 'MAIN_API_BASE_URL', 'https://diotest.letran.com.co'),
+            api_key=getattr(settings, 'MAIN_API_KEY', '')
+        )
     
     def process_file(self, client_file: ClientFile) -> Dict[str, Any]:
         """
