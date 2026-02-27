@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: metalload_integration
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  web:
+    build: .
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn --bind 0.0.0.0:8000 Metalload.wsgi:application"
+    volumes:
+      - .:/app
+      - media_files:/app/media
+      - log_files:/app/logs
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/metalload_integration
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - MAIN_API_BASE_URL=http://host.docker.internal:8000
+
+  celery:
+    build: .
+    command: celery -A Metalload worker -l info
+    volumes:
+      - .:/app
+      - media_files:/app/media
+      - log_files:/app/logs
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/metalload_integration
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - MAIN_API_BASE_URL=http://host.docker.internal:8000
+
+  celery-beat:
+    build: .
+    command: celery -A Metalload beat -l info
+    volumes:
+      - .:/app
+      - log_files:/app/logs
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/metalload_integration
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - MAIN_API_BASE_URL=http://host.docker.internal:8000
+
+volumes:
+  postgres_data:
+  media_files:
+  log_files:
