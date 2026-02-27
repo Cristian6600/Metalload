@@ -18,7 +18,7 @@ class ExportService:
     """Servicio de exportación de datos de clientes"""
     
     def __init__(self):
-        self.api_base_url = getattr(settings, 'MAIN_API_BASE_URL', 'http://127.0.0.1:8080')
+        self.api_base_url = getattr(settings, 'MAIN_API_BASE_URL', 'https://diotest.letran.com.co')
         self.export_dir = Path(settings.MEDIA_ROOT) / 'exports'
         self.export_dir.mkdir(exist_ok=True)
     
