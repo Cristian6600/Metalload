@@ -141,12 +141,12 @@ REST_FRAMEWORK = {
 }
 
 # Configuración del Servicio de Integración
-MAIN_API_BASE_URL = 'https://diotest.letran.com.co/'  # URL de la aplicación principal (cambiar en producción)
+MAIN_API_BASE_URL = 'https://diotest.letran.com.co'  # URL de la aplicación principal (cambiar en producción)
 MAIN_API_ENDPOINT = '/api/v1/asignar/'  # Endpoint específico para asignar clientes
 MAIN_API_KEY = '7fa5c452de2d53f177baffc9f5f89bf6844dd05a'  # Token de prueba para autenticación
 
 # Configuración de Exportación
-EXPORT_API_BASE_URL = 'https://diotest.letran.com.co/'  # URL para exportación de clientes
+EXPORT_API_BASE_URL = 'https://diotest.letran.com.co'  # URL para exportación de clientes
 
 # Configuración de archivos
 MEDIA_URL = '/media/'
