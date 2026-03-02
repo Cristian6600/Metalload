@@ -802,24 +802,27 @@ class FileProcessor:
                     value = 1
                     logger.info(f"📋 documento forzado a 1 (valor original: {value})")
                 
-                # 🔥 CONVERSIÓN PARA ciudad (asegurar 5 dígitos Y usar ciudad_id)
-                elif api_field == 'ciudad_id':
+                # 🔥 CONVERSIÓN PARA ciudad (asegurar 5 dígitos para la API)
+                elif api_field == 'ciudad':
                     try:
                         ciudad_value = str(value).strip()
-                        if ciudad_value.isdigit():
+                        # 🔥 LIMPIAR PRIMERO - remover espacios y caracteres no numéricos
+                        ciudad_clean = ''.join(char for char in ciudad_value if char.isdigit())
+                        
+                        if ciudad_clean:
                             # 🔥 ASEGURAR 5 DÍGITOS - agregar 0 si es necesario
-                            if len(ciudad_value) == 4:
-                                value = int('0' + ciudad_value)  # 8001 → 08001
-                                logger.info(f"🏙️ ciudad_id convertida: '{ciudad_value}' → {value} (agregado 0)")
-                            elif len(ciudad_value) == 5:
-                                value = int(ciudad_value)  # Ya tiene 5 dígitos
-                                logger.info(f"🏙️ ciudad_id convertida: '{ciudad_value}' → {value}")
+                            if len(ciudad_clean) == 4:
+                                value = int('0' + ciudad_clean)  # 8001 → 08001, 6677 → 06677
+                                logger.info(f"🏙️ ciudad convertida: '{ciudad_value}' → {value} (limpiado '{ciudad_clean}' + agregado 0)")
+                            elif len(ciudad_clean) == 5:
+                                value = int(ciudad_clean)  # Ya tiene 5 dígitos
+                                logger.info(f"🏙️ ciudad convertida: '{ciudad_value}' → {value} (limpiado '{ciudad_clean}')")
                             else:
                                 value = 11001  # Bogotá por defecto
-                                logger.warning(f"⚠️ ciudad con {len(ciudad_value)} dígitos, usando Bogotá 11001")
+                                logger.warning(f"⚠️ ciudad con {len(ciudad_clean)} dígitos, usando Bogotá 11001")
                         else:
                             value = 11001  # Bogotá por defecto
-                            logger.info(f"🏙️ ciudad no numérica: '{ciudad_value}' → 11001")
+                            logger.warning(f"⚠️ ciudad sin dígitos válidos: '{ciudad_value}' → 11001")
                     except (ValueError, TypeError):
                         value = 11001  # Bogotá por defecto
                 
