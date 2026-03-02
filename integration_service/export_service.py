@@ -37,7 +37,7 @@ class ExportService:
             dict: Respuesta de la API
         """
         try:
-            url = f"{self.api_base_url}/clientes/export/?id_clie={client_id}"
+            url = f"{self.api_base_url}/clientes/export/?id_clie={client_id}"  # 🔥 USAR EL ENDPOINT CORRECTO DE LA API PARA EXPORTAR
             response = self.session.get(url, timeout=30)  # Usar self.session con SSL desactivado
             response.raise_for_status()
             
