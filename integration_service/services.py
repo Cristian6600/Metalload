@@ -44,24 +44,30 @@ class MainAPIClient:
         url = f"{self.base_url}{endpoint}"
         
         try:
-            # Enviar cada registro individualmente
-            results = []
-            for i, record in enumerate(client_data):
-                logger.info(f"Enviando registro {i+1}: {record}")
-                response = self.session.post(url, json=record)
-                logger.info(f"Respuesta API para registro {i+1}: {response.status_code} - {response.text}")
-                response.raise_for_status()
-                results.append(response.json())
+            # Enviar datos envueltos en campo "data"
+            payload = {"data": client_data}
+            logger.info(f"🌐 Enviando {len(client_data)} registros a: {url}")
+            logger.info(f"🔑 Token usado: {self.api_key[:20]}...")
+            logger.debug(f"📋 Payload: {payload}")
             
-            return {
-                'success': True,
-                'data': results,
-                'status_code': 200,
-                'processed_count': len(results)
-            }
+            response = self.session.post(url, json=payload, timeout=30)
             
+            if response.status_code == 200:
+                logger.info(f"✅ Todos los registros enviados exitosamente")
+                return {
+                    'success': True,
+                    'message': f'Se enviaron {len(client_data)} registros'
+                }
+            else:
+                logger.error(f"❌ Error API: {response.status_code} - {response.text}")
+                return {
+                    'success': False,
+                    'error': f'API Error {response.status_code}: {response.text}',
+                    'status_code': response.status_code
+                }
+                
         except requests.exceptions.RequestException as e:
-            logger.error(f"Error conectando con API principal en {url}: {e}")
+            logger.error(f"Error en API principal: {e}")
             return {
                 'success': False,
                 'error': str(e),
@@ -107,8 +113,9 @@ class FileProcessor:
             if not validation_result['valid']:
                 raise ValueError(f"Validación fallida: {validation_result['errors']}")
             
-            # Enviar a API principal
-            api_result = self.api_client.send_client_data(transformed_data)
+            # Enviar a API principal con campos originales del Excel
+            original_data = self._extract_original_fields(client_file, mapping)
+            api_result = self.api_client.send_client_data(original_data)
             
             if not api_result['success']:
                 raise ValueError(f"Error en API principal: {api_result['error']}")
@@ -772,6 +779,32 @@ class FileProcessor:
                     df[col] = ''
             
             return df
+    
+    def _extract_original_fields(self, client_file: ClientFile, mapping: ClientMapping) -> List[Dict[str, Any]]:
+        """Extrae campos originales del Excel según el mapeo para enviar a la API"""
+        df = self._read_file(client_file.file.path)
+        
+        # 🔥 LOG DE DIAGNÓSTICO
+        logger.info(f"🔍 EXTRACCIÓN - Columnas disponibles: {df.columns.tolist()}")
+        
+        original_data = []
+        mapping_config = mapping.mapping_config
+        
+        for i, row in df.iterrows():
+            record = {}
+            for api_field, excel_field in mapping_config.items():
+                # Extraer valor del campo original del Excel
+                value = self._find_column_value(df, row, excel_field.strip())
+                record[api_field] = value
+            
+            original_data.append(record)
+            
+            # 🔍 LOG DEL PRIMER REGISTRO
+            if i == 0:
+                logger.info(f"📋 Primer registro extraído: {record}")
+        
+        logger.info(f"✅ Extraídos {len(original_data)} registros con campos originales")
+        return original_data
     
     def _transform_file(self, client_file: ClientFile, mapping: ClientMapping) -> List[Dict[str, Any]]:
         """Transforma archivo según configuración de mapeo con manejo robusto de columnas"""
