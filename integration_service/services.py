@@ -802,10 +802,13 @@ class FileProcessor:
                         # Convertir a entero eliminando ceros a la izquierda
                         doc_value = str(value).strip()
                         if doc_value.isdigit():
-                            value = int(doc_value.lstrip('0') or '1')  # Si queda vacío, usar 1
+                            converted = int(doc_value.lstrip('0') or '1')
+                            # 🔥 FORZAR A 1 - La API solo acepta tipo de documento 1
+                            value = 1
+                            logger.info(f"📋 documento convertido: '{doc_value}' → {converted} → forzado a 1")
                         else:
                             value = 1  # Valor por defecto
-                        logger.info(f"📋 documento convertido: '{doc_value}' → {value}")
+                            logger.info(f"📋 documento no numérico: '{doc_value}' → forzado a 1")
                     except (ValueError, TypeError):
                         value = 1  # Valor por defecto si hay error
                         logger.warning(f"⚠️ Error convirtiendo documento, usando 1 por defecto")
