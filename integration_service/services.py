@@ -795,6 +795,33 @@ class FileProcessor:
             for api_field, excel_field in mapping_config.items():
                 # Extraer valor del campo original del Excel
                 value = self._find_column_value(df, row, excel_field.strip())
+                
+                # 🔥 CONVERSIÓN ESPECIAL PARA documento
+                if api_field == 'documento':
+                    try:
+                        # Convertir a entero eliminando ceros a la izquierda
+                        doc_value = str(value).strip()
+                        if doc_value.isdigit():
+                            value = int(doc_value.lstrip('0') or '1')  # Si queda vacío, usar 1
+                        else:
+                            value = 1  # Valor por defecto
+                        logger.info(f"📋 documento convertido: '{doc_value}' → {value}")
+                    except (ValueError, TypeError):
+                        value = 1  # Valor por defecto si hay error
+                        logger.warning(f"⚠️ Error convirtiendo documento, usando 1 por defecto")
+                
+                # 🔥 CONVERSIÓN PARA ciudad (asegurar número)
+                elif api_field == 'ciudad':
+                    try:
+                        ciudad_value = str(value).strip()
+                        if ciudad_value.isdigit():
+                            value = int(ciudad_value)
+                        else:
+                            value = 11001  # Bogotá por defecto
+                        logger.info(f"🏙️ ciudad convertida: '{ciudad_value}' → {value}")
+                    except (ValueError, TypeError):
+                        value = 11001  # Bogotá por defecto
+                
                 record[api_field] = value
             
             original_data.append(record)
