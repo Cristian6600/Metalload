@@ -821,8 +821,10 @@ class FileProcessor:
             # 🔍 LOG DEL PRIMER REGISTRO
             if i == 0:
                 logger.info(f"📋 Primer registro extraído: {record}")
+                logger.info(f"🌐 Payload completo que se enviará: {original_data[:3]}")  # Primeros 3 registros
         
         logger.info(f"✅ Extraídos {len(original_data)} registros con campos originales")
+        logger.info(f"🌐 Enviando payload completo: {original_data}")
         return original_data
     
     def _transform_file(self, client_file: ClientFile, mapping: ClientMapping) -> List[Dict[str, Any]]:
