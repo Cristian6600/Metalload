@@ -1,0 +1,53 @@
+from django.core.management.base import BaseCommand
+from integration_service.models import ClientMapping
+
+
+class Command(BaseCommand):
+    help = 'Mapeo final corregido para la API'
+    
+    def handle(self, *args, **options):
+        # Mapeo FINAL corregido según el serializer
+        final_mapping = {
+            # Campos exactos que espera el BdClieAllAsignarSerializer
+            "cc": "NIT",                    
+            "documento": "COD",              
+            "nombre": "NOMBRE",             
+            "direccion": "DIR RESIDENCIA",      
+            "telefono": "TEL RESIDENCIA",       
+            "ciudad": "CIUDAD RESIDENCIA",      # ← Campo correcto
+            "id_clie": "17",                    # ← ¡CORREGIDO! Valor fijo 17
+            "seudo_bd": "REMESA",              # ← ¡CORREGIDO! Valor dinámico
+            "cuenta1": "CUENTA 1",           
+            "cuenta2": "CUENTA 2",           
+            "sec": "SEC",                   
+            "barrio": "BARRIO",             
+            "celular": "CELULAR",           
+            "dir_oficina": "DIR OFICINA",       
+            "ciudad_oficina": "CIUDAD OFICINA", 
+            "tel_oficina": "TEL OFICINA",       
+            "mercado": "MERCADO",            
+            "fecha_asignacion": "FECHA DE ASIGNACION ",
+            "fecha_entrega": "FECHA DE ENTREGA ",  
+            "tel_entrega": "TEL ENTREGA",       
+            "direc_entrega": "DIREC ENTREGA",     
+            "hra_entrega": "HRA ENTREGA"        
+        }
+        
+        # Actualizar mapeo para CLIENTE_REMESA
+        try:
+            mapping = ClientMapping.objects.get(client_code='CLIENTE_REMESA')
+            mapping.mapping_config = final_mapping
+            mapping.save()
+            
+            self.stdout.write(
+                self.style.SUCCESS('✅ Mapeo final corregido')
+            )
+            
+            self.stdout.write('\n📋 Mapeo final:')
+            for api_field, excel_field in final_mapping.items():
+                self.stdout.write(f'   {api_field} ← {excel_field}')
+                
+        except ClientMapping.DoesNotExist:
+            self.stdout.write(
+                self.style.ERROR('❌ No existe mapeo para CLIENTE_REMESA')
+            )

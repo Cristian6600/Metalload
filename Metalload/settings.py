@@ -142,7 +142,7 @@ REST_FRAMEWORK = {
 
 # Configuración del Servicio de Integración
 MAIN_API_BASE_URL = 'https://diotest.letran.com.co'  # URL de la aplicación principal (cambiar en producción)
-MAIN_API_ENDPOINT = '/api/bdclie/asignar/'  # Endpoint correcto para asignar clientes
+MAIN_API_ENDPOINT = '/api/v1/asignar/'  # Endpoint CORRECTO para asignar clientes
 MAIN_API_KEY = '7fa5c452de2d53f177baffc9f5f89bf6844dd05a'  # Token de prueba para autenticación
 
 # Configuración de Exportación
@@ -153,7 +153,7 @@ STATIC_URL = '/static/'
 STATIC_ROOT = '/webapps/empleados/Metalload/staticfiles'  # Ruta absoluta en el servidor
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = '/webapps/empleados/Metalload/mediafiles'    # Ruta absoluta en el servidor
+MEDIA_ROOT = BASE_DIR / 'media'  # Ruta local para desarrollo
 
 # Configuración de Celery
 CELERY_BROKER_URL = 'redis://localhost:6379/0'

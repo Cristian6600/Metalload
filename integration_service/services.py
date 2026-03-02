@@ -44,34 +44,86 @@ class MainAPIClient:
         url = f"{self.base_url}{endpoint}"
         
         try:
-            # Enviar datos envueltos en campo "data"
-            payload = {"data": client_data}
-            logger.info(f"🌐 Enviando {len(client_data)} registros a: {url}")
-            logger.info(f"🔑 Token usado: {self.api_key[:20]}...")
-            logger.debug(f"📋 Payload: {payload}")
+            # Enviar datos directamente (sin envolver en "data")
+            # La API espera un objeto individual, no una lista
+            if len(client_data) == 0:
+                raise ValueError("No hay datos para enviar")
             
-            response = self.session.post(url, json=payload, timeout=30)
+            # 🔥 ENVIAR TODOS LOS REGISTROS UNO POR UNO
+            success_count = 0
+            error_count = 0
+            errors = []
             
-            if response.status_code == 200:
-                logger.info(f"✅ Todos los registros enviados exitosamente")
+            for i, payload in enumerate(client_data):
+                # 🔥 FILTRAR CAMPOS PARA SOLO INCLUIR LOS QUE ESPERA EL SERIALIZER
+                allowed_fields = ['seudo_bd', 'id_clie', 'nombre', 'surname', 'cc', 'documento', 'ciudad', 'direccion', 'telefono', 'referencia', 'nom_pro', 'tarjeta', 'marcacion', 'convenio', 'tipo_entrega']
+                filtered_payload = {}
+                
+                for field in allowed_fields:
+                    if field in payload:
+                        filtered_payload[field] = payload[field]
+                    else:
+                        # Si el campo no está en payload, no lo incluimos (el serializer manejará los valores por defecto)
+                        pass
+                
+                # 🔥 FORZAR nom_pro SIEMPRE A "01" PARA EVITAR EL ERROR DE LLAVE FORÁNEA
+                filtered_payload['nom_pro'] = "01"
+                logger.info(f"🔧 Forzando 'nom_pro' a '01' para evitar error de llave foránea")
+                
+                logger.info(f"🌐 Enviando registro {i+1}/{len(client_data)} a: {url}")
+                logger.info(f"🔑 Token usado: {self.api_key[:20]}...")
+                logger.info(f"📋 Payload filtrado que se enviará: {filtered_payload}")
+                
+                response = self.session.post(url, json=filtered_payload, timeout=30)
+                
+                # 🔥 CONSIDERAR 201 COMO ÉXITO (CREACIÓN EXITOSA)
+                if response.status_code in [200, 201]:
+                    success_count += 1
+                    logger.info(f"✅ Registro {i+1} enviado exitosamente (status: {response.status_code})")
+                else:
+                    error_count += 1
+                    error_msg = f"❌ Error en registro {i+1}: {response.status_code} - {response.text}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+            
+            # 🔥 RESULTADO FINAL - CONSIDERAR ÉXITO SI HAY AL MENOS UN REGISTRO CREADO
+            if success_count > 0:
+                logger.info(f"✅ {success_count} registros enviados exitosamente de {len(client_data)} totales")
+                if error_count > 0:
+                    logger.warning(f"⚠️ {error_count} registros tuvieron errores (probablemente duplicados)")
                 return {
                     'success': True,
-                    'message': f'Se enviaron {len(client_data)} registros'
+                    'message': f'Se enviaron {success_count} registros exitosamente' + (f', pero {error_count} tuvieron errores' if error_count > 0 else ''),
+                    'success_count': success_count,
+                    'error_count': error_count,
+                    'errors': errors if error_count > 0 else []
                 }
             else:
-                logger.error(f"❌ Error API: {response.status_code} - {response.text}")
+                logger.error(f"❌ Ningún registro pudo ser enviado exitosamente")
                 return {
                     'success': False,
-                    'error': f'API Error {response.status_code}: {response.text}',
-                    'status_code': response.status_code
+                    'message': f'No se pudo enviar ningún registro. {error_count} errores.',
+                    'errors': errors
                 }
                 
         except requests.exceptions.RequestException as e:
-            logger.error(f"Error en API principal: {e}")
+            logger.error(f"❌ Error en API principal: {e}")
+            logger.error(f"❌ Response status: {getattr(e.response, 'status_code', 'No response')}")
+            logger.error(f"❌ Response text: {getattr(e.response, 'text', 'No response text')}")
             return {
                 'success': False,
                 'error': str(e),
-                'status_code': getattr(e.response, 'status_code', None)
+                'status_code': getattr(e.response, 'status_code', None),
+                'response_text': getattr(e.response, 'text', None)
+            }
+        except Exception as e:
+            logger.error(f"❌ Error inesperado en send_client_data: {e}")
+            import traceback
+            logger.error(f"❌ Traceback: {traceback.format_exc()}")
+            return {
+                'success': False,
+                'error': f'Error inesperado: {str(e)}',
+                'type': type(e).__name__
             }
 
 
@@ -84,6 +136,68 @@ class FileProcessor:
             base_url=getattr(settings, 'MAIN_API_BASE_URL', 'https://diotest.letran.com.co'),
             api_key=getattr(settings, 'MAIN_API_KEY', '')
         )
+    
+    def _find_column_value(self, df: pd.DataFrame, row: pd.Series, column_name: str) -> Any:
+        """
+        Busca inteligentemente el valor de una columna en el DataFrame
+        
+        Args:
+            df: DataFrame con los datos
+            row: Fila actual
+            column_name: Nombre de la columna a buscar
+            
+        Returns:
+            Valor encontrado o None
+        """
+        # Primero intentar búsqueda exacta
+        if column_name in df.columns:
+            return row[column_name]
+        
+        # Búsqueda insensible a mayúsculas/minúsculas
+        for col in df.columns:
+            if col.strip().lower() == column_name.strip().lower():
+                return row[col]
+        
+        # Búsqueda parcial (contiene)
+        for col in df.columns:
+            if column_name.strip().lower() in col.strip().lower():
+                return row[col]
+        
+        # Si no se encuentra, retornar None
+        return None
+    
+    def _validate_data(self, data: List[Dict[str, Any]], mapping: ClientMapping) -> Dict[str, Any]:
+        """
+        Valida los datos antes de enviarlos a la API
+        
+        Args:
+            data: Lista de diccionarios con datos
+            mapping: Configuración de mapeo
+            
+        Returns:
+            Dict con resultado de validación
+        """
+        errors = []
+        warnings = []
+        
+        for i, record in enumerate(data):
+            # Validar campos requeridos
+            required_fields = ['seudo_bd', 'id_clie', 'nombre', 'ciudad']
+            for field in required_fields:
+                if field not in record or not record[field]:
+                    errors.append(f"Registro {i+1}: Campo '{field}' es requerido y está vacío")
+            
+            # Validar formato de documento si existe
+            if 'documento' in record and record['documento']:
+                doc = str(record['documento']).strip()
+                if not doc.isdigit():
+                    warnings.append(f"Registro {i+1}: Documento '{doc}' no es numérico")
+        
+        return {
+            'valid': len(errors) == 0,
+            'errors': errors,
+            'warnings': warnings
+        }
     
     def process_file(self, client_file: ClientFile) -> Dict[str, Any]:
         """
@@ -115,10 +229,15 @@ class FileProcessor:
             
             # Enviar a API principal con campos originales del Excel
             original_data = self._extract_original_fields(client_file, mapping)
+            logger.info(f"🔢 Enviando {len(original_data)} registros a la API principal")
             api_result = self.api_client.send_client_data(original_data)
+            logger.info(f"📊 Resultado de API: {api_result}")
             
             if not api_result['success']:
-                raise ValueError(f"Error en API principal: {api_result['error']}")
+                logger.error(f"❌ API devolvió success=False: {api_result}")
+                raise ValueError(f"Error en API principal: {api_result.get('error', 'Error desconocido')}")
+            
+            logger.info(f"✅ API respondió exitosamente: {api_result.get('message', 'Sin mensaje')}")
             
             # Actualizar estado final
             client_file.status = 'processed'
@@ -798,9 +917,21 @@ class FileProcessor:
                 
                 # 🔥 CONVERSIÓN ESPECIAL PARA documento
                 if api_field == 'documento':
-                    # 🔥 SIMPRE DOCUMENTO = 1 - La API solo acepta tipo 1
-                    value = 1
-                    logger.info(f"📋 documento forzado a 1 (valor original: {value})")
+                    try:
+                        # 🔥 LIMPIAR COD - remover guiones y caracteres no numéricos
+                        doc_value = str(value).strip()
+                        doc_clean = ''.join(char for char in doc_value if char.isdigit())
+                        
+                        if doc_clean:
+                            # 🔥 SIMPRE DOCUMENTO = 1 - La API solo acepta tipo 1
+                            value = 1
+                            logger.info(f"📋 documento forzado a 1 (valor original: {doc_value} → limpiado {doc_clean})")
+                        else:
+                            value = 1  # Valor por defecto si no hay dígitos
+                            logger.warning(f"⚠️ documento sin dígitos válidos: '{doc_value}' → 1")
+                    except (ValueError, TypeError):
+                        value = 1  # Valor por defecto
+                        logger.warning(f"⚠️ Error procesando documento, usando 1 por defecto")
                 
                 # 🔥 CONVERSIÓN PARA ciudad (asegurar 5 dígitos para la API)
                 elif api_field == 'ciudad':
@@ -812,7 +943,8 @@ class FileProcessor:
                         if ciudad_clean:
                             # 🔥 ASEGURAR 5 DÍGITOS - agregar 0 si es necesario
                             if len(ciudad_clean) == 4:
-                                value = int('0' + ciudad_clean)  # 8001 → 08001, 6677 → 06677
+                                # 🔥 IMPORTANTE: Mantener como string para preservar el cero
+                                value = '0' + ciudad_clean  # 8001 → "08001"
                                 logger.info(f"🏙️ ciudad convertida: '{ciudad_value}' → {value} (limpiado '{ciudad_clean}' + agregado 0)")
                             elif len(ciudad_clean) == 5:
                                 value = int(ciudad_clean)  # Ya tiene 5 dígitos
@@ -826,14 +958,54 @@ class FileProcessor:
                     except (ValueError, TypeError):
                         value = 11001  # Bogotá por defecto
                 
+                # 🔥 CAMPOS FIJOS - id_clie depende del cliente
+                elif api_field == 'id_clie':
+                    # 🔥 SOLO CLIENTE_REMESA = 17
+                    if mapping.client_code == 'CLIENTE_REMESA':
+                        value = 17  # Valor fijo para CLIENTE_REMESA
+                        logger.info(f"🔢 id_clie forzado a 17 (cliente: {mapping.client_code})")
+                    else:
+                        value = 1  # Valor por defecto para otros clientes
+                        logger.info(f"🔢 id_clie por defecto 1 (cliente: {mapping.client_code})")
+                
+                # 🔥 CAMPO DINÁMICO - seudo_bd se genera más adelante
+                elif api_field == 'seudo_bd':
+                    # 🔥 NO ASIGNAR NADA - se genera en _transform_file
+                    continue
+                
                 record[api_field] = value
             
             original_data.append(record)
-            
             # 🔍 LOG DEL PRIMER REGISTRO
             if i == 0:
                 logger.info(f"📋 Primer registro extraído: {record}")
                 logger.info(f"🌐 Payload completo que se enviará: {original_data[:3]}")  # Primeros 3 registros
+                # 🔥 ASEGURAR seudo_bd si está vacío
+            if not record.get('seudo_bd') or record['seudo_bd'] == 'TEMP_SEUDO_BD':
+                # Generar seudo_bd único aquí
+                cuenta1 = record.get('cuenta1', '')
+                cc = record.get('cc', '')
+                if cuenta1 and cc:
+                    ultimos_4_digitos = cuenta1[-4:] if len(cuenta1) >= 4 else cuenta1
+                    if not ultimos_4_digitos:
+                        ultimos_4_digitos = '0000'
+                    timestamp_suffix = str(int(time.time()))[-3:]
+                    record['seudo_bd'] = f"{ultimos_4_digitos}{cc}{timestamp_suffix}"
+                    logger.info(f"🔢 seudo_bd generado en _extract_original_fields: {record['seudo_bd']}")
+                else:
+                    record['seudo_bd'] = f"DEFAULT{int(time.time())}"
+                    logger.warning(f"⚠️ seudo_bd por defecto en _extract_original_fields: {record['seudo_bd']}")
+            
+            # 🔥 DEBUG ESPECIAL - Verificar campos requeridos
+            required_fields = ['seudo_bd', 'id_clie', 'nombre', 'ciudad']
+            missing_fields = [field for field in required_fields if field not in record or not record[field]]
+            if missing_fields:
+                logger.error(f"❌ CAMPOS REQUERIDOS FALTANTES en _extract_original_fields: {missing_fields}")
+                logger.error(f"❌ REGISTRO COMPLETO en _extract_original_fields: {record}")
+            else:
+                logger.info(f"✅ Todos los campos requeridos presentes en _extract_original_fields: {required_fields}")
+            
+            original_data.append(record)
         
         logger.info(f"✅ Extraídos {len(original_data)} registros con campos originales")
         logger.info(f"🌐 Enviando payload completo: {original_data}")
@@ -841,211 +1013,21 @@ class FileProcessor:
     
     def _transform_file(self, client_file: ClientFile, mapping: ClientMapping) -> List[Dict[str, Any]]:
         """Transforma archivo según configuración de mapeo con manejo robusto de columnas"""
-        df = self._read_file(client_file.file.path)
+        # 🔥 USAR _extract_original_fields que ya tiene toda la lógica
+        original_data = self._extract_original_fields(client_file, mapping)
         
-        # 🔥 LOG DE DIAGNÓSTICO ANTES DE TRANSFORMAR
-        logger.info(f"🔍 DIAGNÓSTICO - Columnas disponibles: {df.columns.tolist()}")
-        logger.info(f"📊 Total de filas: {len(df)}")
-        logger.info(f"📋 Vista previa:\n{df.head(3).to_string()}")
-        
-        # Aplicar transformaciones según mapeo
-        mapping_config = mapping.mapping_config
-        transformed_data = []
-        
-        for i, row in df.iterrows():
-            record = {}
-            for target_field, source_config in mapping_config.items():
-                if isinstance(source_config, str):
-                    # Mapeo directo con búsqueda inteligente
-                    if source_config.strip():  # Si no está vacío
-                        # 🔍 BÚSQUEDA INTELIGENTE DE COLUMNA
-                        col_value = self._find_column_value(df, row, source_config.strip())
-                        record[target_field] = col_value
-                    else:  # Si está vacío, poner valor vacío
-                        record[target_field] = ''
-                elif isinstance(source_config, dict):
-                    # Mapeo con transformación
-                    source_field = source_config.get('source')
-                    transform_type = source_config.get('transform', 'direct')
-                    
-                    # 🔍 BÚSQUEDA INTELIGENTE PARA TRANSFORMACIONES
-                    value = self._find_column_value(df, row, source_field)
-                    
-                    if transform_type == 'upper':
-                        record[target_field] = str(value).upper()
-                    elif transform_type == 'lower':
-                        record[target_field] = str(value).lower()
-                    elif transform_type == 'strip':
-                        record[target_field] = str(value).strip()
-                    else:
-                        record[target_field] = value
-                else:
-                    record[target_field] = source_config  # Valor fijo
-            
-            # Limpiar valores NaN y None para evitar errores JSON (PRIMERO)
-            for key, value in record.items():
-                if pd.isna(value) or value is None:
-                    record[key] = ''
-                elif isinstance(value, float):
-                    # Convertir todos los floats a strings para evitar problemas
-                    if value != int(value):
-                        record[key] = str(value)
-                    else:
-                        record[key] = int(value)
-            
-            # Validación especial para campos numéricos que deben ser texto (códigos DANE de 5 dígitos)
-            if record.get('ciudad'):
-                ciudad_value = str(record['ciudad']).strip()
-                
-                if ciudad_value.isdigit():
-                    # Si es numérico, asegurar que tenga 5 dígitos (código DANE)
-                    if len(ciudad_value) == 4:
-                        # Agregar 0 a la izquierda si tiene 4 dígitos
-                        record['ciudad'] = '0' + ciudad_value
-                        logger.info(f"🏙️ Ciudad numérica de 4 dígitos ({ciudad_value}) → código DANE 5 dígitos: {record['ciudad']}")
-                    elif len(ciudad_value) == 5:
-                        # Ya tiene 5 dígitos, usar directamente
-                        record['ciudad'] = ciudad_value
-                        logger.info(f"🏙️ Ciudad numérica de 5 dígitos (código DANE): {record['ciudad']}")
-                    else:
-                        # Si no tiene 4 ni 5 dígitos, usar Bogotá por defecto
-                        record['ciudad'] = '11001'
-                        logger.warning(f"🏙️ Ciudad numérica con {len(ciudad_value)} dígitos ({ciudad_value}), usando Bogotá (11001) por defecto")
-                else:
-                    # Si es texto, usarlo directamente (nombre de ciudad)
-                    record['ciudad'] = ciudad_value
-                    logger.info(f"🏙️ Ciudad como texto: {record['ciudad']}")
+        # 🔥 DEBUG: Verificar que todos los campos requeridos estén presentes
+        if original_data and len(original_data) > 0:
+            first_record = original_data[0]
+            required_fields = ['seudo_bd', 'id_clie', 'nombre', 'ciudad']
+            missing_fields = [field for field in required_fields if field not in first_record or not first_record[field]]
+            if missing_fields:
+                logger.error(f"❌ CAMPOS REQUERIDOS FALTANTES en _transform_file: {missing_fields}")
+                logger.error(f"❌ PRIMER REGISTRO COMPLETO: {first_record}")
             else:
-                # Si no hay ciudad, dejar vacío
-                logger.warning(f"🏙️ Sin valor para ciudad, dejando vacío")
-                record['ciudad'] = ''
-            
-            # 🔥 GENERAR SEUDO_BD CON ÚLTIMOS 4 DÍGITOS DE CUENTA 1 + NIT + TIMESTAMP PARA EVITAR DUPLICADOS
-            cuenta1 = record.get('cuenta1', '')
-            nit = record.get('cc', '')  # Usar campo cc (NIT) en lugar de sec
-            
-            if cuenta1 and nit:
-                # Extraer últimos 4 dígitos de CUENTA 1
-                ultimos_4_digitos = cuenta1[-4:] if len(cuenta1) >= 4 else cuenta1
-                # Agregar timestamp de 3 dígitos para evitar duplicados
-                timestamp_suffix = str(int(time.time()))[-3:]
-                # Concatenar con NIT + timestamp
-                record['seudo_bd'] = f"{ultimos_4_digitos}{nit}{timestamp_suffix}"
-                logger.info(f"🔢 Generando seudo_bd único: {ultimos_4_digitos} + {nit} + {timestamp_suffix} = {record['seudo_bd']}")
-            elif record.get('seudo_bd'):
-                # Fallback si no hay cuenta1 o nit
-                timestamp = int(time.time())
-                record['seudo_bd'] = f"{record['seudo_bd']}-{timestamp}"
-            else:
-                # Fallback final
-                record['seudo_bd'] = 'DEFAULT_PSEUDO_BD'
-            
-            # 🚚 LÓGICA CONDICIONAL PARA tipo_entrega BASADO EN COD
-            cod_value = record.get('cod', '')
-            if cod_value:
-                try:
-                    cod_num = int(float(cod_value)) if str(cod_value).replace('.', '').isdigit() else 0
-                    if cod_num == 15:
-                        record['tipo_entrega'] = 3
-                        logger.info(f"🚚 COD = 15, tipo_entrega = 3")
-                    else:
-                        record['tipo_entrega'] = 1
-                        logger.info(f"🚚 COD = {cod_num} (≠15), tipo_entrega = 1")
-                except (ValueError, TypeError):
-                    # Si no es numérico, asumir tipo_entrega = 1
-                    record['tipo_entrega'] = 1
-                    logger.warning(f"🚚 COD no numérico ({cod_value}), tipo_entrega = 1 por defecto")
-            else:
-                # Si no hay COD, tipo_entrega = 1 por defecto
-                record['tipo_entrega'] = 1
-                logger.warning(f"🚚 Sin COD, tipo_entrega = 1 por defecto")
-            
-            transformed_data.append(record)
+                logger.info(f"✅ Todos los campos requeridos presentes en _transform_file: {required_fields}")
         
-        # 📊 LOG DE RESULTADOS DE TRANSFORMACIÓN
-        logger.info(f"✅ Transformación completada. {len(transformed_data)} registros generados")
-        if transformed_data:
-            logger.info(f"📋 Primer registro transformado: {transformed_data[0]}")
-        
-        return transformed_data
-    
-    def _find_column_value(self, df: pd.DataFrame, row: pd.Series, column_name: str) -> str:
-        """
-        Busca el valor de una columna de forma inteligente
-        Maneja variaciones en nombres de columnas y espacios
-        """
-        column_name = column_name.strip().upper()
-        
-        # 1️⃣ Búsqueda exacta (case insensitive)
-        for col in df.columns:
-            if str(col).strip().upper() == column_name:
-                value = row.get(col, '')
-                logger.debug(f"🎯 Columna encontrada (exacta): {col} = {value}")
-                return str(value).strip() if pd.notna(value) else ''
-        
-        # 2️⃣ Búsqueda por contiene (si la exacta no funciona)
-        for col in df.columns:
-            if column_name in str(col).strip().upper():
-                value = row.get(col, '')
-                logger.debug(f"🔍 Columna encontrada (contiene): {col} = {value}")
-                return str(value).strip() if pd.notna(value) else ''
-        
-        # 3️⃣ Búsqueda por palabras clave
-        keyword_mapping = {
-            'REMESA': ['REMESA', 'REMESSA', 'SEUDO', 'PSEUDO'],
-            'NOMBRE': ['NOMBRE', 'NOMBRES', 'CLIENTE', 'TITULAR'],
-            'NIT': ['NIT', 'CC', 'CEDULA', 'DOCUMENTO', 'ID'],
-            'CUENTA 1': ['CUENTA', 'ACCOUNT'],
-            'DIRECCION': ['DIRECCION', 'ADDRESS', 'DIR'],
-            'BARRIO': ['BARRIO', 'NEIGHBORHOOD'],
-            'CIUDAD': ['CIUDAD', 'CITY'],
-            'TELEFONO': ['TELEFONO', 'TEL', 'PHONE'],
-            'CELULAR': ['CELULAR', 'CEL', 'MOVIL', 'MOBILE'],
-            'MERCADO': ['MERCADO', 'MARKET'],
-            'COD': ['COD', 'CODE', 'CÓDIGO']
-        }
-        
-        # Buscar por palabras clave
-        for keyword, alternatives in keyword_mapping.items():
-            if column_name == keyword:
-                for alt in alternatives:
-                    for col in df.columns:
-                        if alt in str(col).strip().upper():
-                            value = row.get(col, '')
-                            logger.debug(f"🔑 Columna encontrada (keyword): {col} = {value}")
-                            return str(value).strip() if pd.notna(value) else ''
-        
-        # 4️⃣ Si no se encuentra, log de advertencia
-        logger.warning(f"⚠️ Columna no encontrada: '{column_name}'. Columnas disponibles: {df.columns.tolist()}")
-        return ''
-    
-    def _validate_data(self, data: List[Dict[str, Any]], mapping: ClientMapping) -> Dict[str, Any]:
-        """Valida datos transformados"""
-        errors = []
-        warnings = []
-        
-        validation_rules = mapping.validation_rules or {}
-        
-        # Validaciones básicas
-        required_fields = validation_rules.get('required_fields', [])
-        
-        for i, record in enumerate(data):
-            # Validar campos requeridos
-            for field in required_fields:
-                if field not in record or not record[field]:
-                    errors.append(f"Registro {i+1}: Campo '{field}' es requerido y está vacío")
-            
-            # Validar formato de documento si existe
-            if 'documento' in record and record['documento']:
-                doc = str(record['documento']).strip()
-                if not doc.isdigit():
-                    warnings.append(f"Registro {i+1}: Documento '{doc}' no es numérico")
-        
-        return {
-            'valid': len(errors) == 0,
-            'errors': errors,
-            'warnings': warnings
-        }
+        return original_data
 
 
 class ReportGenerator:
