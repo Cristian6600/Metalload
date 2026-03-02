@@ -802,15 +802,24 @@ class FileProcessor:
                     value = 1
                     logger.info(f"📋 documento forzado a 1 (valor original: {value})")
                 
-                # 🔥 CONVERSIÓN PARA ciudad (asegurar número)
+                # 🔥 CONVERSIÓN PARA ciudad (asegurar 5 dígitos)
                 elif api_field == 'ciudad':
                     try:
                         ciudad_value = str(value).strip()
                         if ciudad_value.isdigit():
-                            value = int(ciudad_value)
+                            # 🔥 ASEGURAR 5 DÍGITOS - agregar 0 a la izquierda si es necesario
+                            if len(ciudad_value) == 4:
+                                value = int('0' + ciudad_value)  # 8001 → 08001
+                                logger.info(f"🏙️ ciudad convertida: '{ciudad_value}' → {value} (agregado 0)")
+                            elif len(ciudad_value) == 5:
+                                value = int(ciudad_value)  # Ya tiene 5 dígitos
+                                logger.info(f"🏙️ ciudad convertida: '{ciudad_value}' → {value}")
+                            else:
+                                value = 11001  # Bogotá por defecto
+                                logger.warning(f"⚠️ ciudad con {len(ciudad_value)} dígitos, usando Bogotá 11001")
                         else:
                             value = 11001  # Bogotá por defecto
-                        logger.info(f"🏙️ ciudad convertida: '{ciudad_value}' → {value}")
+                            logger.info(f"🏙️ ciudad no numérica: '{ciudad_value}' → 11001")
                     except (ValueError, TypeError):
                         value = 11001  # Bogotá por defecto
                 
