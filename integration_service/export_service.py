@@ -37,8 +37,17 @@ class ExportService:
             dict: Respuesta de la API
         """
         try:
-            url = f"{self.api_base_url}/clientes/export/?id_clie={client_id}"  # 🔥 USAR EL ENDPOINT CORRECTO DE LA API PARA EXPORTAR
-            response = self.session.get(url, timeout=30)  # Usar self.session con SSL desactivado
+            # 🔥 USAR EL ENDPOINT CORRECTO DE LA API PARA EXPORTAR
+            url = f"{self.api_base_url}/clientes/export/?id_clie={client_id}"
+            
+            # 🔥 AGREGAR AUTORIZACIÓN
+            api_key = getattr(settings, 'MAIN_API_KEY', '')
+            headers = {
+                'Authorization': f'Token {api_key}',
+                'Content-Type': 'application/json'
+            }
+            
+            response = self.session.get(url, headers=headers, timeout=30)
             response.raise_for_status()
             
             if response.status_code == 200:
