@@ -22,8 +22,17 @@ class ClientFile(models.Model):
         ('failed', 'Fallido'),
     ]
     
+    CLIENT_CHOICES = [
+        ('CLIENTE_REMESA', 'CLIENTE_REMESA SERFINANZA'),
+    ]
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    client_code = models.CharField(max_length=50, verbose_name="Código Cliente")
+    client_code = models.CharField(
+        max_length=50, 
+        choices=CLIENT_CHOICES,
+        default='CLIENTE_REMESA',
+        verbose_name="Código Cliente"
+    )
     file = models.FileField(
         upload_to=upload_to,
         validators=[FileExtensionValidator(allowed_extensions=['csv', 'xlsx', 'xls', 'txt'])],

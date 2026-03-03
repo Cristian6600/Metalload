@@ -12,7 +12,7 @@ class ClientFileAdmin(admin.ModelAdmin):
     list_filter = ['status', 'client_code', 'uploaded_at']
     search_fields = ['client_code', 'original_filename']
     readonly_fields = [
-        'id', 'uploaded_at', 'processed_at', 'error_message', 'file_size_display'
+        'id', 'uploaded_at', 'processed_at', 'error_message', 'file_size_display', 'original_filename'
     ]
     ordering = ['-uploaded_at']
     
@@ -33,13 +33,13 @@ class ClientFileAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         """Override mejorado para carga automática"""
         if not change:  # Solo al crear nuevo registro
+            # 🔥 AUTOGENERAR NOMBRE ORIGINAL DESDE EL ARCHIVO
+            if obj.file and not obj.original_filename:
+                obj.original_filename = obj.file.name.split('/')[-1]  # Obtener solo el nombre del archivo
+            
             # Calcular tamaño del archivo
             if obj.file:
                 obj.file_size = obj.file.size
-            
-            # Establecer nombre original si no está definido
-            if not obj.original_filename and obj.file:
-                obj.original_filename = obj.file.name
             
             # Marcar como pendiente para procesamiento automático
             obj.status = 'pending'

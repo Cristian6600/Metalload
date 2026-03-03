@@ -251,14 +251,14 @@ class FileProcessor:
                 message=f"Archivo procesado exitosamente. {len(transformed_data)} registros enviados.",
                 details={
                     'records_count': len(transformed_data),
-                    'api_response': api_result['data']
+                    'api_response': api_result  # 🔥 GUARDAR TODO EL RESULTADO, NO SOLO 'data'
                 }
             )
             
             return {
                 'success': True,
                 'records_processed': len(transformed_data),
-                'api_response': api_result['data']
+                'api_response': api_result  # 🔥 GUARDAR TODO EL RESULTADO, NO SOLO 'data'
             }
             
         except Exception as e:
@@ -958,6 +958,44 @@ class FileProcessor:
                     except (ValueError, TypeError):
                         value = 11001  # Bogotá por defecto
                 
+                # 🔥 PROCESAMIENTO ESPECIAL PARA marcacion
+                elif api_field == 'marcacion':
+                    try:
+                        marcacion_value = str(value).strip()
+                        if marcacion_value and marcacion_value != '':
+                            value = marcacion_value
+                            logger.info(f"⏰ marcacion: '{marcacion_value}'")
+                        else:
+                            value = None  # Dejar vacío si no hay valor
+                            logger.warning(f"⚠️ marcacion vacío: '{marcacion_value}' → None")
+                    except (ValueError, TypeError):
+                        value = None
+                        logger.warning(f"⚠️ Error procesando marcacion, usando None")
+                
+                # 🔥 PROCESAMIENTO ESPECIAL PARA tipo_entrega (basado en convenio)
+                elif api_field == 'tipo_entrega':
+                    try:
+                        # 🔥 BUSCAR VALOR DE convenio EN EL EXCEL
+                        convenio_value = self._find_column_value(df, row, 'COD')
+                        convenio_str = str(convenio_value).strip()
+                        logger.info(f"🔍 DEBUG tipo_entrega: convenio encontrado = '{convenio_str}' (tipo: {type(convenio_value)})")
+                        logger.info(f"🔍 DEBUG tipo_entrega: Valor original convenio = {repr(convenio_value)}")
+                        logger.info(f"🔍 DEBUG tipo_entrega: Valor limpio convenio = '{convenio_str}'")
+                        logger.info(f"🔍 DEBUG tipo_entrega: Longitud = {len(convenio_str)}")
+                        logger.info(f"🔍 DEBUG tipo_entrega: ¿Es igual a '15'? {convenio_str == '15'}")
+                        
+                        if convenio_str == '15':
+                            value = '03'  # Si convenio = 15 → tipo_entrega = 03
+                            logger.info(f"🏷️ tipo_entrega: convenio='{convenio_str}' → tipo_entrega='03'")
+                        else:
+                            value = '01'  # Si convenio ≠ 15 → tipo_entrega = 01
+                            logger.info(f"🏷️ tipo_entrega: convenio='{convenio_str}' → tipo_entrega='01'")
+                        
+                        logger.info(f"✅ tipo_entrega final asignado: '{value}'")
+                    except (ValueError, TypeError) as e:
+                        value = '01'  # Valor por defecto si hay error
+                        logger.warning(f"⚠️ Error procesando tipo_entrega desde convenio, usando '01' por defecto: {e}")
+                
                 # 🔥 CAMPOS FIJOS - id_clie depende del cliente
                 elif api_field == 'id_clie':
                     # 🔥 SOLO CLIENTE_REMESA = 17
@@ -968,12 +1006,21 @@ class FileProcessor:
                         value = 1  # Valor por defecto para otros clientes
                         logger.info(f"🔢 id_clie por defecto 1 (cliente: {mapping.client_code})")
                 
-                # 🔥 CAMPO DINÁMICO - seudo_bd se genera más adelante
+                # 🔥 CAMPO DINÁMICO - seudo_bd usa columna SEC
                 elif api_field == 'seudo_bd':
-                    # 🔥 NO ASIGNAR NADA - se genera en _transform_file
-                    continue
+                    # 🔥 USAR VALOR DE COLUMNA SEC DIRECTAMENTE
+                    sec_value = self._find_column_value(df, row, 'SEC')
+                    if sec_value:
+                        value = str(sec_value).strip()
+                        logger.info(f"🔢 seudo_bd desde columna SEC: {value}")
+                    else:
+                        # Si no hay SEC, generar como antes
+                        value = None  # Se generará después
+                        logger.warning(f"⚠️ Columna SEC no encontrada, se generará seudo_bd automático")
                 
-                record[api_field] = value
+                # 🔥 ASIGNAR EL VALOR AL REGISTRO (SIEMPRE)
+                if value is not None:
+                    record[api_field] = value
             
             original_data.append(record)
             # 🔍 LOG DEL PRIMER REGISTRO
@@ -995,6 +1042,31 @@ class FileProcessor:
                 else:
                     record['seudo_bd'] = f"DEFAULT{int(time.time())}"
                     logger.warning(f"⚠️ seudo_bd por defecto en _extract_original_fields: {record['seudo_bd']}")
+            
+            # 🔥 VALIDACIÓN DE DUPLICADOS PARA seudo_bd
+            original_pseudo_bd = record.get('seudo_bd', '')
+            if original_pseudo_bd:
+                # Verificar si ya existe este seudo_bd en registros anteriores
+                suffix = 0
+                current_pseudo_bd = original_pseudo_bd
+                
+                # Buscar duplicados en los registros ya procesados
+                existing_pseudo_bds = [existing_record.get('seudo_bd', '') for existing_record in original_data]
+                logger.info(f"🔍 DEBUG duplicados: seudo_bd actual={current_pseudo_bd}, existentes={existing_pseudo_bds[:5]}...")
+                
+                while current_pseudo_bd in existing_pseudo_bds:
+                    suffix += 1
+                    current_pseudo_bd = f"{original_pseudo_bd}{suffix}"
+                    logger.info(f"🔄 Duplicado encontrado: {original_pseudo_bd} → {current_pseudo_bd}")
+                
+                # Actualizar el registro si se modificó
+                if current_pseudo_bd != original_pseudo_bd:
+                    record['seudo_bd'] = current_pseudo_bd
+                    logger.info(f"✅ seudo_bd ajustado por duplicado: {original_pseudo_bd} → {current_pseudo_bd}")
+                else:
+                    logger.info(f"✅ seudo_bd único (en archivo): {current_pseudo_bd}")
+            else:
+                logger.warning(f"⚠️ seudo_bd vacío, no se puede validar duplicados")
             
             # 🔥 DEBUG ESPECIAL - Verificar campos requeridos
             required_fields = ['seudo_bd', 'id_clie', 'nombre', 'ciudad']

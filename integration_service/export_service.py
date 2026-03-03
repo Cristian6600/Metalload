@@ -25,6 +25,34 @@ class ExportService:
         # Desactivar verificación SSL para servidores de prueba
         self.session = requests.Session()
         self.session.verify = False
+        
+        # 🔥 TABLA DE TRADUCCIÓN DE PROCESOS
+        self.proceso_descriptions = {
+            '01': 'TCO (SOLA)',
+            '01 FGA': 'TCO (SOLA) + FGA',
+            '02': '"COMBO" (TCO+ TARJETA DÉBITO)',
+            '02 FGA': '"COMBO" (TCO+ TARJETA DÉBITO) +FGA',
+            '02-1': 'RECOLECCION DOC CUENTA AHORRO  +  ENTREGA TCO',
+            '02-1 FGA': 'RECOLECCION DOC CUENTA AHORRO  + ENTREGA TCO +FGA',
+            '03': 'ENTREGA TARJETA DEBITO',
+            '15': 'ENTREGA CERTIFICADA',
+            '04': 'MIGRACION',
+            '05': 'REXP ROBO',
+            '06': 'RENOVACION',  # 🔥 AGREGADO 06
+            '17': 'ENTREGA SIN DOCUMENTOS CON BIOMETRIA'
+        }
+    
+    def get_proceso_description(self, proceso_code: str) -> str:
+        """🔥 Obtener descripción del proceso según el código"""
+        if not proceso_code:
+            return ''
+        
+        # Buscar coincidencia exacta primero
+        if proceso_code in self.proceso_descriptions:
+            return self.proceso_descriptions[proceso_code]
+        
+        # Si no encuentra, devolver el código original
+        return proceso_code
     
     def fetch_client_data(self, client_id: int) -> dict:
         """
@@ -161,8 +189,51 @@ class ExportService:
         if not data:
             raise ValueError("No hay datos para exportar")
         
+        # 🔥 PROCESAR DATOS ANTES DE EXPORTAR
+        processed_data = []
+        for record in data:
+            processed_record = record.copy()
+            
+            # 🔥 DEBUG: Ver qué campos vienen en el registro
+            logger.info(f"🔍 DEBUG - Campos disponibles: {list(record.keys())}")
+            
+            # 🔥 TRADUCIR DESCRIPCIÓN PROCESO según CD PROCESO
+            proceso_code = None
+            if 'CD PROCESO' in record:  # 🔥 BUSCAR CON ESPACIO (como viene de la API)
+                proceso_code = str(record['CD PROCESO'])
+                logger.info(f"🔍 DEBUG - CD PROCESO encontrado: {proceso_code}")
+            elif 'cd_proceso' in record:  # 🔥 BUSCAR SIN ESPACIO (por si acaso)
+                proceso_code = str(record['cd_proceso'])
+                logger.info(f"🔍 DEBUG - cd_proceso encontrado: {proceso_code}")
+            elif 'convenio' in record:  # 🔥 INTENTAR CON convenio
+                proceso_code = str(record['convenio'])
+                logger.info(f"🔍 DEBUG - usando convenio como cd_proceso: {proceso_code}")
+            else:
+                logger.warning(f"🔍 DEBUG - No se encontró CD PROCESO ni cd_proceso ni convenio en: {record}")
+            
+            if proceso_code:
+                # 🔥 MODIFICAR LA COLUMNA DESCRIPCIÓN PROCESO EXISTENTE
+                descripcion = self.get_proceso_description(proceso_code)
+                if 'DESCRIPCIÓN PROCESO' in record:  # 🔥 BUSCAR CON TILDE Y ESPACIO
+                    processed_record['DESCRIPCIÓN PROCESO'] = descripcion
+                    logger.info(f"🔄 Traducción: CD PROCESO '{proceso_code}' → DESCRIPCIÓN PROCESO '{descripcion}'")
+                elif 'descripcion_proceso' in record:  # 🔥 BUSCAR SIN TILDE (por si acaso)
+                    processed_record['descripcion_proceso'] = descripcion
+                    logger.info(f"🔄 Traducción: CD PROCESO '{proceso_code}' → descripcion_proceso '{descripcion}'")
+                else:
+                    logger.warning(f"⚠️ No existe la columna DESCRIPCIÓN PROCESO en el registro")
+            else:
+                if 'DESCRIPCIÓN PROCESO' in record:
+                    processed_record['DESCRIPCIÓN PROCESO'] = ''
+                    logger.warning(f"⚠️ DESCRIPCIÓN PROCESO vacío - sin código de proceso")
+                elif 'descripcion_proceso' in record:
+                    processed_record['descripcion_proceso'] = ''
+                    logger.warning(f"⚠️ descripcion_proceso vacío - sin código de proceso")
+            
+            processed_data.append(processed_record)
+        
         # Convertir a DataFrame
-        df = pd.DataFrame(data)
+        df = pd.DataFrame(processed_data)
         
         # Crear archivo Excel
         filepath = self.export_dir / filename
