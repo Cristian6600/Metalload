@@ -408,8 +408,8 @@ class ExportService:
             estado_gestion_valor = str(record.get('ESTADO GESTION TELEFONICA', ''))
             
             if estado_gestion_valor == 'Cita futura':
-                processed_record['ESTADO GESTION TELEFONICA'] = 'AGENDADO'
-                processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
+                processed_record['ESTADO GESTION TELEFONICA'] = 'CONTACTADO'
+                processed_record['RESULTADO GESTION TELEFONICA'] = 'AGENDADO'
                 logger.info(f"🔄 Regla especial: ESTADO GESTION TELEFONICA='Cita futura' → 'AGENDADO' + RESULTADO GESTION TELEFONICA='CONTACTADO'")
 
             elif estado_gestion_valor == 'Cambio total':
