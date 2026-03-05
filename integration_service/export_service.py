@@ -470,7 +470,32 @@ class ExportService:
             elif estado_gestion_valor == 'Cliente cancelo el producto':
                 processed_record['ESTADO GESTION TELEFONICA'] = 'MALA EXPERIENCIA CANCELO O CANCELARA'
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
-                logger.info(f"🔄 Regla especial: ESTADO GESTION TELEFONICA='Cliente cancelo el producto' → 'TELEFONO ERRADO' + RESULTADO GESTION TELEFONICA='NO CONTACTADO'")
+
+            ###################################### MAS ######################
+
+            elif estado_gestion_valor == 'Cliente cancelo el producto':
+                processed_record['ESTADO GESTION TELEFONICA'] = 'MALA EXPERIENCIA CANCELO O CANCELARA'
+                processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
+
+            elif estado_gestion_valor == 'Cliente Fallecido':
+                processed_record['ESTADO GESTION TELEFONICA'] = 'CLIENTE FALLECIDO'
+                processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
+
+            elif estado_gestion_valor == 'Rehusado':
+                processed_record['ESTADO GESTION TELEFONICA'] = 'NO INTERESADO, NO ESPECIFICA'
+                processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
+
+            elif estado_gestion_valor == 'Cliente ya tiene el producto':
+                processed_record['ESTADO GESTION TELEFONICA'] = 'NO INTERESADO, NO ESPECIFICA'
+                processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
+
+            elif estado_gestion_valor == 'Se comunica con el banco':
+                processed_record['ESTADO GESTION TELEFONICA'] = 'NO INTERESADO POR CUOTA'
+                processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
+
+            elif estado_gestion_valor == 'Radicado fuera del pais':
+                processed_record['ESTADO GESTION TELEFONICA'] = 'CAMBIO DE DOMICILIO'
+                processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
 
             ############ COLUMNA BIOMETRIA##############################
 
