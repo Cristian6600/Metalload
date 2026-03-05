@@ -289,7 +289,7 @@ class ExportService:
                 processed_record['ESTADO'] = 'REHUSADO' 
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO INTERESADO POR CUOTA'
 
-            elif calificacion_call_valor == 'Cliente canceló el producto'and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA':
+            elif calificacion_call_valor == 'Cliente cancelo el producto'and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA':
                 processed_record['ESTADO'] = 'REHUSADO' 
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'MALA EXPERIENCIA CANCELO O CANCELARA'
 
