@@ -467,6 +467,11 @@ class ExportService:
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'NO CONTACTADO'
                 logger.info(f"🔄 Regla especial: ESTADO GESTION TELEFONICA='Ocupado' → 'TELEFONO OCUPADO' + RESULTADO GESTION TELEFONICA='NO CONTACTADO'")
 
+            elif estado_gestion_valor == 'Cliente cancelo el producto':
+                processed_record['ESTADO GESTION TELEFONICA'] = 'MALA EXPERIENCIA CANCELO O CANCELARA'
+                processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
+                logger.info(f"🔄 Regla especial: ESTADO GESTION TELEFONICA='Cliente cancelo el producto' → 'TELEFONO ERRADO' + RESULTADO GESTION TELEFONICA='NO CONTACTADO'")
+
             ############ COLUMNA BIOMETRIA##############################
 
             if biometria_valor == 'PERSONALIZADA' and motivos_valor == 'Entregado':
