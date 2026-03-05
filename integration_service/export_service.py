@@ -417,7 +417,7 @@ class ExportService:
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
                 logger.info(f"🔄 Regla especial: ESTADO GESTION TELEFONICA='Cambio total' → 'CONTACTADO' + RESULTADO GESTION TELEFONICA='AGENDADO'")
 
-            elif estado_gestion_valor == 'Complementa dirección':
+            elif estado_gestion_valor == 'Complementa direccion':
                 processed_record['ESTADO GESTION TELEFONICA'] = 'CONTACTADO'
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'AGENDADO'
                 logger.info(f"🔄 Regla especial: ESTADO GESTION TELEFONICA='Complementa dirección' → 'CONTACTADO' + RESULTADO GESTION TELEFONICA='AGENDADO'")
