@@ -277,7 +277,7 @@ class ExportService:
                 processed_record['ESTADO'] = 'ILOCALIZADO' 
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'TELEFONO ERRADO'
 
-            elif calificacion_call_valor == 'Radicado fuera del pais' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA':
+            elif calificacion_call_valor == 'Radicado fuera del pais' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad':
                 processed_record['ESTADO'] = 'ILOCALIZADO'  
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'CAMBIO DE DOMICILIO'
 
