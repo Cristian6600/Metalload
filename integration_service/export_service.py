@@ -293,7 +293,11 @@ class ExportService:
                 processed_record['ESTADO'] = 'REHUSADO' 
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'MALA EXPERIENCIA CANCELO O CANCELARA'
 
-            elif calificacion_call_valor == 'Rehusado' or calificacion_call_valor == 'Cliente ya tiene el producto' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Cliente ya tiene el producto' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+                processed_record['ESTADO'] = 'REHUSADO' 
+                processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO INTERESADO, NO ESPECIFICA'
+
+            elif calificacion_call_valor == 'Rehusado' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
                 processed_record['ESTADO'] = 'REHUSADO' 
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO INTERESADO, NO ESPECIFICA'
 
