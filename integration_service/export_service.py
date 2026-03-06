@@ -239,6 +239,10 @@ class ExportService:
             cantidad_llamadas_valor = record.get('TOTAL LLAMADAS', 0)
             biometria_valor = str(record.get('BIOMETRIA', ''))
 
+            var_call = ['Traslado oficina', 'Cambio total', 'Complementa direccion', 'Cita futura']
+            if calificacion_call_valor in var_call:
+                processed_record['SALIDAS EN FRIO'] = 0
+
             print("--, ------------------------------------------------", motivos_valor)
             
             # 🔥 Convertir a número para comparación correcta
