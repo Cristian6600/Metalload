@@ -238,6 +238,7 @@ class ExportService:
             calificacion_call_valor = str(record.get('ESTADO GESTION TELEFONICA', ''))
             cantidad_llamadas_valor = record.get('TOTAL LLAMADAS', 0)
             biometria_valor = str(record.get('BIOMETRIA', ''))
+            visitas_valor = str(record.get('VISITAS', ''))
 
             var_call = ['Traslado oficina', 'Cambio total', 'Complementa direccion', 'Cita futura']
             if calificacion_call_valor in var_call:
@@ -331,10 +332,20 @@ class ExportService:
                 processed_record['ESTADO'] = 'EN GESTION'
                 logger.info(f"🔄 Regla especial: MOTIVOS RECHAZO Y DEVUELTAS='En Ruta' o 'En ruta ciudad' → 'EN DISTRIBUCION' + ESTADO='EN GESTION'")
             elif motivos_valor == 'Ausente' or motivos_valor == 'Cerrado':
-                # 🔥 REGLA ESPECIAL: Ausente o Cerrado
-                processed_record['ESTADO'] = 'EN GESTION'
-                processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO HAY QUIEN RECIBA'
-                logger.info(f"🔄 Regla especial: MOTIVOS RECHAZO Y DEVUELTAS='Ausente' o 'Cerrado' → 'NO HAY QUIEN RECIBA' + ESTADO='EN GESTION'")
+                
+                try:
+                    visitas_num = int(visitas_valor) if visitas_valor and visitas_valor.isdigit() else 0
+                except (ValueError, TypeError):
+                    visitas_num = 0
+                    
+                if visitas_num <= 2:
+                    processed_record['ESTADO'] = 'EN GESTION'
+                    processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO HAY QUIEN RECIBA'
+                    logger.info(f"🔄 Regla especial: MOTIVOS RECHAZO Y DEVUELTAS='Ausente' o 'Cerrado' → 'NO HAY QUIEN RECIBA' + ESTADO='EN GESTION'")
+                else:
+                    processed_record['ESTADO'] = 'ILOCALIZADO'
+                    processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO HAY QUIEN RECIBA'
+                    logger.info(f"🔄 Regla especial: MOTIVOS RECHAZO Y DEVUELTAS='Ausente' o 'Cerrado' → 'NO HAY QUIEN RECIBA' + ESTADO='ILOCALIZADO'")
             elif motivos_valor == 'De viaje':
                 # 🔥 REGLA ESPECIAL: De viaje
                 processed_record['ESTADO'] = 'EN GESTION'
