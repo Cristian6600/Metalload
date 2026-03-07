@@ -135,6 +135,8 @@ class ExportService:
         
         Args:
             data: Lista de registros
+        Args:
+            data: Lista de registros
             column_mapping: Mapeo columna_excel -> campo_api
             column_order: Orden de columnas
             
@@ -206,6 +208,9 @@ class ExportService:
             if 'CD PROCESO' in record:  # 🔥 BUSCAR CON ESPACIO (como viene de la API)
                 proceso_code = str(record['CD PROCESO'])
                 logger.info(f"🔍 DEBUG - CD PROCESO encontrado: {proceso_code}")
+                processed_record['RESULTADO GESTION TELEFONICA'] = 'AGENDADO' 
+                logger.info(f"🔄 Regla especial: ESTADO GESTION TELEFONICA='Complementa dirección' → 'CONTACTADO' + RESULTADO GESTION TELEFONICA='AGENDADO'")
+
             elif 'cd_proceso' in record:  # 🔥 BUSCAR SIN ESPACIO (por si acaso)
                 proceso_code = str(record['cd_proceso'])
                 logger.info(f"🔍 DEBUG - cd_proceso encontrado: {proceso_code}")
@@ -251,57 +256,58 @@ class ExportService:
             except (ValueError, TypeError):
                 cantidad_llamadas_num = 0
             #####################################################
-            if calificacion_call_valor == 'No Contesta' and cantidad_llamadas_num >= 3 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            var_operacion = ['En ruta ciudad', 'En Ruta', 'Entregado', 'Direccion no existe', 'Cambio de domicilio']
+            if calificacion_call_valor == 'No Contesta' and cantidad_llamadas_num >= 3 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'ILOCALIZADO'  # 🔥 MAYÚSCULAS
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO CONTESTA'
 
-            elif calificacion_call_valor == 'Telefono Apagado' and cantidad_llamadas_num >= 3 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Telefono Apagado' and cantidad_llamadas_num >= 3 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'ILOCALIZADO'  # 🔥 MAYÚSCULAS
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'BUZON DE VOZ'
 
-            elif calificacion_call_valor == 'Ocupado' and cantidad_llamadas_num >= 3 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Ocupado' and cantidad_llamadas_num >= 3 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'ILOCALIZADO'  # 🔥 MAYÚSCULAS
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'TELEFONO OCUPADO'
 
-            elif calificacion_call_valor == 'Falla operador telefónico' and cantidad_llamadas_num >= 3 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Falla operador telefónico' and cantidad_llamadas_num >= 3 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'ILOCALIZADO'  # 🔥 MAYÚSCULAS
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'TELEFONO FUERA DE SERVICIO'
 
             ####################################1###################################
 
-            elif calificacion_call_valor == 'Equivocado' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Equivocado' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'ILOCALIZADO'  
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'TELEFONO ERRADO'
 
-            elif calificacion_call_valor == 'Sin información telefónica' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Sin información telefónica' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'ILOCALIZADO'  
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'TELEFONO ERRADO'
 
-            elif calificacion_call_valor == 'Datos errados' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Datos errados' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'ILOCALIZADO' 
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'TELEFONO ERRADO'
 
-            elif calificacion_call_valor == 'Radicado fuera del pais' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Radicado fuera del pais' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'ILOCALIZADO'  
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'CAMBIO DE DOMICILIO'
 
-            elif calificacion_call_valor == 'Cliente Fallecido'and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Cliente Fallecido'and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'DEVUELTO'  
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'CLIENTE FALLECIDO'
 
-            elif calificacion_call_valor == 'Se comunica con el banco'and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Se comunica con el banco'and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'REHUSADO' 
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO INTERESADO POR CUOTA'
 
-            elif calificacion_call_valor == 'Cliente cancelo el producto'and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Cliente cancelo el producto'and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'REHUSADO' 
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'MALA EXPERIENCIA CANCELO O CANCELARA'
 
-            elif calificacion_call_valor == 'Cliente ya tiene el producto' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Cliente ya tiene el producto' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'REHUSADO' 
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO INTERESADO, NO ESPECIFICA'
 
-            elif calificacion_call_valor == 'Rehusado' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Rehusado' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'REHUSADO' 
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO INTERESADO, NO ESPECIFICA'
 
@@ -348,12 +354,22 @@ class ExportService:
                 processed_record['ESTADO'] = 'ILOCALIZADO'
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'DIRECCIÓN INCOMPLETA'
 
-            elif motivos_valor == 'Direccion no existe' or motivos_valor == 'Direccion no existe o errada':
+            elif motivos_valor == 'Direccion no existe':
                 # 🔥 REGLA ESPECIAL: NO VISITADO
                 processed_record['ESTADO'] = 'ILOCALIZADO'
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'DIRECCIÓN NO EXISTE'
 
-            elif motivos_valor == 'Cambio de domicilio' or motivos_valor == 'Radicado fuera de la ciudad':
+            elif motivos_valor == 'Direccion no existe o errada':
+                # 🔥 REGLA ESPECIAL: NO VISITADO
+                processed_record['ESTADO'] = 'ILOCALIZADO'
+                processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'DIRECCIÓN NO EXISTE'
+
+            elif motivos_valor == 'Cambio de domicilio' :
+                # 🔥 REGLA ESPECIAL: NO VISITADO
+                processed_record['ESTADO'] = 'ILOCALIZADO'
+                processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'CAMBIO DE DOMICILIO'
+
+            elif motivos_valor == 'Radicado fuera de la ciudad':
                 # 🔥 REGLA ESPECIAL: NO VISITADO
                 processed_record['ESTADO'] = 'ILOCALIZADO'
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'CAMBIO DE DOMICILIO'
@@ -409,99 +425,94 @@ class ExportService:
                 processed_record['ESTADO'] = 'DESTRUCCIÓN'
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'DESTRUIDO SOBRE ABIERTO'
                 
-            
                 
 #####################################################################################################################            
             # 🔥 NUEVA REGLA: Si ESTADO GESTION TELEFONICA = Cita futura
             estado_gestion_valor = str(record.get('ESTADO GESTION TELEFONICA', ''))
             
-            if estado_gestion_valor == 'Cita futura':
+            if estado_gestion_valor == 'Cita futura' and motivos_valor not in var_operacion:
                 processed_record['ESTADO GESTION TELEFONICA'] = 'AGENDADO'
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
                 logger.info(f"🔄 Regla especial: ESTADO GESTION TELEFONICA='Cita futura' → 'AGENDADO' + RESULTADO GESTION TELEFONICA='CONTACTADO'")
 
-            elif estado_gestion_valor == 'Cambio total':
+            elif estado_gestion_valor == 'Cambio total' and motivos_valor not in var_operacion:
                 processed_record['ESTADO GESTION TELEFONICA'] = 'AGENDADO'
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
                 logger.info(f"🔄 Regla especial: ESTADO GESTION TELEFONICA='Cambio total' → 'CONTACTADO' + RESULTADO GESTION TELEFONICA='AGENDADO'")
 
-            elif estado_gestion_valor == 'Complementa direccion':
+            elif estado_gestion_valor == 'Complementa direccion' and motivos_valor not in var_operacion:
                 processed_record['ESTADO GESTION TELEFONICA'] = 'AGENDADO'
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
                 logger.info(f"🔄 Regla especial: ESTADO GESTION TELEFONICA='Complementa dirección' → 'CONTACTADO' + RESULTADO GESTION TELEFONICA='AGENDADO'")
 
-            elif estado_gestion_valor == 'Traslado oficina':
+            elif estado_gestion_valor == 'Traslado oficina' and motivos_valor not in var_operacion:
                 processed_record['ESTADO GESTION TELEFONICA'] = 'CONTACTADO'
-                processed_record['RESULTADO GESTION TELEFONICA'] = 'AGENDADO'
+                processed_record['RESULTADO GESTION TELEFONICA'] = 'AGENDADO' 
                 logger.info(f"🔄 Regla especial: ESTADO GESTION TELEFONICA='Complementa dirección' → 'CONTACTADO' + RESULTADO GESTION TELEFONICA='AGENDADO'")
 
-            elif estado_gestion_valor == 'No Contesta':
+            elif estado_gestion_valor == 'No Contesta' and motivos_valor not in var_operacion:
                 processed_record['ESTADO GESTION TELEFONICA'] = 'NO CONTESTA'
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'NO CONTACTADO'
                 logger.info(f"🔄 Regla especial: ESTADO GESTION TELEFONICA='No Contesta' → 'NO CONTESTA' + RESULTADO GESTION TELEFONICA='NO CONTACTADO'")
 
-            elif estado_gestion_valor == 'Telefono Apagado':
+            elif estado_gestion_valor == 'Telefono Apagado' and motivos_valor not in var_operacion:
                 processed_record['ESTADO GESTION TELEFONICA'] = 'BUZON DE VOZ'
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'NO CONTACTADO'
                 logger.info(f"🔄 Regla especial: ESTADO GESTION TELEFONICA='Teléfono Apagado' → 'BUZON DE VOZ' + RESULTADO GESTION TELEFONICA='NO CONTACTADO'")
 
-            elif estado_gestion_valor == 'Volver a llamar':
+            elif estado_gestion_valor == 'Volver a llamar' and motivos_valor not in var_operacion:
                 processed_record['ESTADO GESTION TELEFONICA'] = 'CLIENTE SOLICITA OTRA LLAMADA'
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
                 logger.info(f"🔄 Regla especial: ESTADO GESTION TELEFONICA='Volver a llamar' → 'CLIENTE SOLICITA OTRA LLAMADA' + RESULTADO GESTION TELEFONICA='CONTACTADO'")
             
-            elif estado_gestion_valor == 'Equivocado':
+            elif estado_gestion_valor == 'Equivocado' and motivos_valor not in var_operacion:
                 processed_record['ESTADO GESTION TELEFONICA'] = 'TELEFONO ERRADO'
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'NO CONTACTADO'
                 logger.info(f" Regla especial: ESTADO GESTION TELEFONICA='Equivocado' → 'TELEFONO ERRADO' + RESULTADO GESTION TELEFONICA='NO CONTACTADO'")
             
-            elif estado_gestion_valor == 'Sin información telefónica':
+            elif estado_gestion_valor == 'Sin información telefónica' and motivos_valor not in var_operacion:
                 processed_record['ESTADO GESTION TELEFONICA'] = 'TELEFONO ERRADO'
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'NO CONTACTADO'
                 logger.info(f" Regla especial: ESTADO GESTION TELEFONICA='Sin información telefónica' → 'TELEFONO ERRADO' + RESULTADO GESTION TELEFONICA='NO CONTACTADO'")
             
-            elif estado_gestion_valor == 'Datos errados':
+            elif estado_gestion_valor == 'Datos errados' and motivos_valor not in var_operacion:
                 processed_record['ESTADO GESTION TELEFONICA'] = 'TELEFONO ERRADO'
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'NO CONTACTADO'
                 logger.info(f"🔄 Regla especial: ESTADO GESTION TELEFONICA='Datos errados' → 'TELEFONO ERRADO' + RESULTADO GESTION TELEFONICA='NO CONTACTADO'")
             
-            elif estado_gestion_valor == 'Falla operador telefónico':
+            elif estado_gestion_valor == 'Falla operador telefónico' and motivos_valor not in var_operacion:
                 processed_record['ESTADO GESTION TELEFONICA'] = 'TELEFONO FUERA DE SERVICIO'
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'NO CONTACTADO'
                 logger.info(f"🔄 Regla especial: ESTADO GESTION TELEFONICA='Falla operador telefónico' → 'TELEFONO FUERA DE SERVICIO' + RESULTADO GESTION TELEFONICA='NO CONTACTADO'")
             
-            elif estado_gestion_valor == 'Ocupado':
+            elif estado_gestion_valor == 'Ocupado' and motivos_valor not in var_operacion:
                 processed_record['ESTADO GESTION TELEFONICA'] = 'TELEFONO OCUPADO '
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'NO CONTACTADO'
                 logger.info(f"🔄 Regla especial: ESTADO GESTION TELEFONICA='Ocupado' → 'TELEFONO OCUPADO' + RESULTADO GESTION TELEFONICA='NO CONTACTADO'")
 
-            elif estado_gestion_valor == 'Cliente cancelo el producto':
+            elif estado_gestion_valor == 'Cliente cancelo el producto' and motivos_valor not in var_operacion:
                 processed_record['ESTADO GESTION TELEFONICA'] = 'MALA EXPERIENCIA CANCELO O CANCELARA'
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
 
             ###################################### MAS ######################
 
-            elif estado_gestion_valor == 'Cliente cancelo el producto':
-                processed_record['ESTADO GESTION TELEFONICA'] = 'MALA EXPERIENCIA CANCELO O CANCELARA'
-                processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
-
-            elif estado_gestion_valor == 'Cliente Fallecido':
+            elif estado_gestion_valor == 'Cliente Fallecido' and motivos_valor not in var_operacion:
                 processed_record['ESTADO GESTION TELEFONICA'] = 'CLIENTE FALLECIDO'
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
 
-            elif estado_gestion_valor == 'Rehusado':
+            elif estado_gestion_valor == 'Rehusado' and motivos_valor not in var_operacion:
                 processed_record['ESTADO GESTION TELEFONICA'] = 'NO INTERESADO, NO ESPECIFICA'
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
 
-            elif estado_gestion_valor == 'Cliente ya tiene el producto':
+            elif estado_gestion_valor == 'Cliente ya tiene el producto' and motivos_valor not in var_operacion:
                 processed_record['ESTADO GESTION TELEFONICA'] = 'NO INTERESADO, NO ESPECIFICA'
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
 
-            elif estado_gestion_valor == 'Se comunica con el banco':
+            elif estado_gestion_valor == 'Se comunica con el banco' and motivos_valor not in var_operacion:
                 processed_record['ESTADO GESTION TELEFONICA'] = 'NO INTERESADO POR CUOTA'
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
 
-            elif estado_gestion_valor == 'Radicado fuera del pais':
+            elif estado_gestion_valor == 'Radicado fuera del pais' and motivos_valor not in var_operacion:
                 processed_record['ESTADO GESTION TELEFONICA'] = 'CAMBIO DE DOMICILIO'
                 processed_record['RESULTADO GESTION TELEFONICA'] = 'CONTACTADO'
 
