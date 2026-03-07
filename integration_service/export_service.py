@@ -251,7 +251,7 @@ class ExportService:
             except (ValueError, TypeError):
                 cantidad_llamadas_num = 0
             #####################################################
-            var_operacion = ['En ruta ciudad', 'En Ruta', 'Entregado', 'Direccion no existe', 'Cambio de domicilio']
+            var_operacion = ['En ruta ciudad', 'En Ruta', 'Entregado', 'Direccion no existe', 'Cambio de domicilio', 'Cerrado', 'Dificil acceso', 'Radicado fuera de la ciudad', 'Destruido']
             if calificacion_call_valor == 'No Contesta' and cantidad_llamadas_num >= 3 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'ILOCALIZADO'  # 🔥 MAYÚSCULAS
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO CONTESTA'
@@ -379,7 +379,7 @@ class ExportService:
                 processed_record['ESTADO'] = 'DEVUELTO'
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'SOLICITUD DEL BANCO'
 
-            elif motivos_valor == 'Dom. en proceso de devolución':
+            elif motivos_valor == 'DOM. EN PROCESO DE DEVOLUCION':
                 # 🔥 REGLA ESPECIAL: NO VISITADO
                 processed_record['ESTADO'] = 'DEVUELTO'
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'CLIENTE SOLICITA ENVIO A AGENCIA'
