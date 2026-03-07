@@ -251,57 +251,58 @@ class ExportService:
             except (ValueError, TypeError):
                 cantidad_llamadas_num = 0
             #####################################################
-            if calificacion_call_valor == 'No Contesta' and cantidad_llamadas_num >= 3 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            var_operacion = ['En ruta ciudad', 'En Ruta', 'Entregado', 'Direccion no existe', 'Cambio de domicilio']
+            if calificacion_call_valor == 'No Contesta' and cantidad_llamadas_num >= 3 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'ILOCALIZADO'  # 🔥 MAYÚSCULAS
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO CONTESTA'
 
-            elif calificacion_call_valor == 'Telefono Apagado' and cantidad_llamadas_num >= 3 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Telefono Apagado' and cantidad_llamadas_num >= 3 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'ILOCALIZADO'  # 🔥 MAYÚSCULAS
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'BUZON DE VOZ'
 
-            elif calificacion_call_valor == 'Ocupado' and cantidad_llamadas_num >= 3 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Ocupado' and cantidad_llamadas_num >= 3 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'ILOCALIZADO'  # 🔥 MAYÚSCULAS
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'TELEFONO OCUPADO'
 
-            elif calificacion_call_valor == 'Falla operador telefónico' and cantidad_llamadas_num >= 3 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Falla operador telefónico' and cantidad_llamadas_num >= 3 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'ILOCALIZADO'  # 🔥 MAYÚSCULAS
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'TELEFONO FUERA DE SERVICIO'
 
             ####################################1###################################
 
-            elif calificacion_call_valor == 'Equivocado' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Equivocado' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'ILOCALIZADO'  
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'TELEFONO ERRADO'
 
-            elif calificacion_call_valor == 'Sin información telefónica' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Sin información telefónica' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'ILOCALIZADO'  
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'TELEFONO ERRADO'
 
-            elif calificacion_call_valor == 'Datos errados' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Datos errados' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'ILOCALIZADO' 
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'TELEFONO ERRADO'
 
-            elif calificacion_call_valor == 'Radicado fuera del pais' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Radicado fuera del pais' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'ILOCALIZADO'  
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'CAMBIO DE DOMICILIO'
 
-            elif calificacion_call_valor == 'Cliente Fallecido'and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Cliente Fallecido'and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'DEVUELTO'  
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'CLIENTE FALLECIDO'
 
-            elif calificacion_call_valor == 'Se comunica con el banco'and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Se comunica con el banco'and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'REHUSADO' 
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO INTERESADO POR CUOTA'
 
-            elif calificacion_call_valor == 'Cliente cancelo el producto'and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Cliente cancelo el producto'and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'REHUSADO' 
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'MALA EXPERIENCIA CANCELO O CANCELARA'
 
-            elif calificacion_call_valor == 'Cliente ya tiene el producto' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Cliente ya tiene el producto' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'REHUSADO' 
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO INTERESADO, NO ESPECIFICA'
 
-            elif calificacion_call_valor == 'Rehusado' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor != 'En ruta ciudad' and motivos_valor != 'En Ruta':
+            elif calificacion_call_valor == 'Rehusado' and cantidad_llamadas_num >= 1 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
                 processed_record['ESTADO'] = 'REHUSADO' 
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO INTERESADO, NO ESPECIFICA'
 
