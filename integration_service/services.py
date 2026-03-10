@@ -56,7 +56,7 @@ class MainAPIClient:
             
             for i, payload in enumerate(client_data):
                 # 🔥 FILTRAR CAMPOS PARA SOLO INCLUIR LOS QUE ESPERA EL SERIALIZER
-                allowed_fields = ['seudo_bd', 'id_clie', 'nombre', 'surname', 'cc', 'documento', 'ciudad', 'direccion', 'telefono', 'referencia', 'nom_pro', 'tarjeta', 'marcacion', 'convenio', 'tipo_entrega']
+                allowed_fields = ['seudo_bd', 'id_clie', 'nombre', 'surname', 'cc', 'documento', 'ciudad', 'direccion', 'telefono', 'referencia', 'nom_pro', 'tarjeta', 'marcacion', 'convenio', 'tipo_entrega', 'realz']
                 filtered_payload = {}
                 
                 for field in allowed_fields:
@@ -884,7 +884,7 @@ class FileProcessor:
                 'FECHA DE ENTREGA': '2025-02-20',
                 'TEL ENTREGA': '',
                 'DIREC ENTREGA': '',
-                'HRA ENTREGA': ''
+                'HRA ENTREGA': ''   
             }
             
             expected_cols = ['REMESA', 'CUENTA 1', 'CUENTA 2', 'SEC', 'COD', 'NIT', 'NOMBRE', 
@@ -1006,6 +1006,24 @@ class FileProcessor:
                         value = 1  # Valor por defecto para otros clientes
                         logger.info(f"🔢 id_clie por defecto 1 (cliente: {mapping.client_code})")
                 
+                # 🔥 CAMPO ESPECIAL - realz usa columna REMESA
+                elif api_field == 'realz':
+                    # 🔥 USAR VALOR DE COLUMNA REMESA DIRECTAMENTE
+                    remesa_value = self._find_column_value(df, row, 'REMESA')
+                    if remesa_value:
+                        value = str(remesa_value).strip()
+                        logger.info(f"🔢 realz desde columna REMESA: {value}")
+                    else:
+                        value = None  # Dejar vacío si no hay REMESA
+                        logger.warning(f"⚠️ Columna REMESA no encontrada, realz será None")
+                
+                # 🔥 CAMPO ESPECIAL - fecha_reporte_final usa fecha actual
+                elif api_field == 'fecha_reporte_final':
+                    # 🔥 USAR FECHA ACTUAL
+                    from datetime import datetime
+                    value = datetime.now().strftime('%Y-%m-%d')
+                    logger.info(f"📅 fecha_reporte_final usando fecha actual: {value}")
+                
                 # 🔥 CAMPO DINÁMICO - seudo_bd usa columna SEC
                 elif api_field == 'seudo_bd':
                     # 🔥 USAR VALOR DE COLUMNA SEC DIRECTAMENTE
@@ -1043,30 +1061,30 @@ class FileProcessor:
                     record['seudo_bd'] = f"DEFAULT{int(time.time())}"
                     logger.warning(f"⚠️ seudo_bd por defecto en _extract_original_fields: {record['seudo_bd']}")
             
-            # 🔥 VALIDACIÓN DE DUPLICADOS PARA seudo_bd
-            original_pseudo_bd = record.get('seudo_bd', '')
-            if original_pseudo_bd:
-                # Verificar si ya existe este seudo_bd en registros anteriores
-                suffix = 0
-                current_pseudo_bd = original_pseudo_bd
-                
-                # Buscar duplicados en los registros ya procesados
-                existing_pseudo_bds = [existing_record.get('seudo_bd', '') for existing_record in original_data]
-                logger.info(f"🔍 DEBUG duplicados: seudo_bd actual={current_pseudo_bd}, existentes={existing_pseudo_bds[:5]}...")
-                
-                while current_pseudo_bd in existing_pseudo_bds:
-                    suffix += 1
-                    current_pseudo_bd = f"{original_pseudo_bd}{suffix}"
-                    logger.info(f"🔄 Duplicado encontrado: {original_pseudo_bd} → {current_pseudo_bd}")
-                
-                # Actualizar el registro si se modificó
-                if current_pseudo_bd != original_pseudo_bd:
-                    record['seudo_bd'] = current_pseudo_bd
-                    logger.info(f"✅ seudo_bd ajustado por duplicado: {original_pseudo_bd} → {current_pseudo_bd}")
-                else:
-                    logger.info(f"✅ seudo_bd único (en archivo): {current_pseudo_bd}")
-            else:
-                logger.warning(f"⚠️ seudo_bd vacío, no se puede validar duplicados")
+            # 🔥 VALIDACIÓN DE DUPLICADOS PARA seudo_bd - ELIMINADA POR SOLICITUD
+            # original_pseudo_bd = record.get('seudo_bd', '')
+            # if original_pseudo_bd:
+            #     # Verificar si ya existe este seudo_bd en registros anteriores
+            #     suffix = 0
+            #     current_pseudo_bd = original_pseudo_bd
+            #     
+            #     # Buscar duplicados en los registros ya procesados
+            #     existing_pseudo_bds = [existing_record.get('seudo_bd', '') for existing_record in original_data]
+            #     logger.info(f"🔍 DEBUG duplicados: seudo_bd actual={current_pseudo_bd}, existentes={existing_pseudo_bds[:5]}...")
+            #     
+            #     while current_pseudo_bd in existing_pseudo_bds:
+            #         suffix += 1
+            #         current_pseudo_bd = f"{original_pseudo_bd}{suffix}"
+            #         logger.info(f"🔄 Duplicado encontrado: {original_pseudo_bd} → {current_pseudo_bd}")
+            #     
+            #     # Actualizar el registro si se modificó
+            #     if current_pseudo_bd != original_pseudo_bd:
+            #         record['seudo_bd'] = current_pseudo_bd
+            #         logger.info(f"✅ seudo_bd ajustado por duplicado: {original_pseudo_bd} → {current_pseudo_bd}")
+            #     else:
+            #         logger.info(f"✅ seudo_bd único (en archivo): {current_pseudo_bd}")
+            # else:
+            #     logger.warning(f"⚠️ seudo_bd vacío, no se puede validar duplicados")
             
             # 🔥 DEBUG ESPECIAL - Verificar campos requeridos
             required_fields = ['seudo_bd', 'id_clie', 'nombre', 'ciudad']

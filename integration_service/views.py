@@ -496,6 +496,13 @@ def export_now_admin(request, config_id: uuid):
         filters = export_config.default_filters
         client_id = filters.get('id_clie')
         
+        # 🔥 PASAR FILTROS AL SERVICIO
+        filters = export_config.default_filters
+        client_id = filters.get('id_clie')
+        
+        # 🔥 PASAR FILTROS AL SERVICIO
+        export_service.current_filters = filters
+        
         if not client_id:
             return JsonResponse({'error': 'No hay id_clie configurado'}, status=400)
         
