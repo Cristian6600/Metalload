@@ -364,6 +364,10 @@ class ExportService:
             elif motivos_valor == 'NO PASA VALIDACION BIOMETRICA':
                 processed_record['ESTADO'] = 'EN GESTION'  # 
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO PASA VALIDACION BIOMETRICA'  
+
+            elif motivos_valor == 'No cobertura':
+                processed_record['ESTADO'] = 'DEVUELTO'  # 
+                processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO CUBRIMINETO'  
                 
             elif motivos_valor == 'Custodia' and proceso_valor == 'PERSONALIZADA':
                 # 🔥 REGLA ESPECIAL: Custodia + PERSONALIZADA
