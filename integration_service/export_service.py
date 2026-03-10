@@ -358,9 +358,13 @@ class ExportService:
             ####################################2###################################
             
             elif motivos_valor == 'Entregado':
-                processed_record['ESTADO'] = 'ENTREGADO'  # 🔥 MAYÚSCULAS
-                processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'ENTREGADO'  # 🔥 MAYÚSCULAS
-                logger.info(f"🔄 Regla: MOTIVOS RECHAZO Y DEVUELTAS='Entregado' → ESTADO='ENTREGADO' + MOTIVOS RECHAZO Y DEVUELTAS='ENTREGADO'")
+                processed_record['ESTADO'] = 'ENTREGADO'  # 
+                processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'ENTREGADO'  # 
+
+            elif motivos_valor == 'NO PASA VALIDACION BIOMETRICA':
+                processed_record['ESTADO'] = 'EN GESTION'  # 
+                processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO PASA VALIDACION BIOMETRICA'  
+                
             elif motivos_valor == 'Custodia' and proceso_valor == 'PERSONALIZADA':
                 # 🔥 REGLA ESPECIAL: Custodia + PERSONALIZADA
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'EN GESTION TELEFONICA'
