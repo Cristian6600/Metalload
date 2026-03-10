@@ -88,6 +88,31 @@ class ExportService:
                     data = [record for record in data if record.get('motivo_operacion') == motivo_filtro]
                     logger.info(f"🔍 Filtrados {len(data)} registros por motivo_operacion='{motivo_filtro}'")
                 
+                # 🔥 FILTRAR POR FECHA DEL DÍA ANTERIOR si está en los filtros
+                if hasattr(self, 'current_filters') and 'fecha_estado' in self.current_filters:
+                    fecha_filtro = self.current_filters['fecha_estado']
+                    if fecha_filtro == 'dia_anterior':
+                        # Obtener fecha del día anterior
+                        from datetime import datetime, timedelta
+                        ayer = datetime.now() - timedelta(days=1)
+                        fecha_ayer = ayer.strftime('%Y-%m-%d')
+                        
+                        # Filtrar por fecha_estado
+                        data = [record for record in data if record.get('fecha_estado') == fecha_ayer]
+                        logger.info(f"🔍 Filtrados {len(data)} registros por fecha_estado del día anterior: {fecha_ayer}")
+                    elif fecha_filtro == 'hoy':
+                        # Obtener fecha de hoy
+                        from datetime import datetime
+                        hoy = datetime.now().strftime('%Y-%m-%d')
+                        
+                        # Filtrar por fecha_estado
+                        data = [record for record in data if record.get('fecha_estado') == hoy]
+                        logger.info(f"🔍 Filtrados {len(data)} registros por fecha_estado de hoy: {hoy}")
+                    else:
+                        # Filtrar por fecha específica
+                        data = [record for record in data if record.get('fecha_estado') == fecha_filtro]
+                        logger.info(f"🔍 Filtrados {len(data)} registros por fecha_estado: {fecha_filtro}")
+                
                 return data
             else:
                 logger.error(f"Error en API: {response.status_code}")
