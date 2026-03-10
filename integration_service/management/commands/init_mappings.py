@@ -38,7 +38,7 @@ class Command(BaseCommand):
             "cuenta1": "CUENTA 1",
             "cuenta2": "CUENTA 2",
             "sec": "SEC",
-            "cod": "COD"
+            "cod": "COD",
         }
         
         remesa_validation = {

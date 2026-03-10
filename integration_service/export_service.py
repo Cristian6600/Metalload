@@ -81,6 +81,13 @@ class ExportService:
             if response.status_code == 200:
                 data = response.json()
                 logger.info(f"Datos obtenidos para cliente {client_id}: {len(data)} registros")
+                
+                # 🔥 FILTRAR LOCALMENTE por motivo_operacion si está en los filtros
+                if hasattr(self, 'current_filters') and 'motivo_operacion' in self.current_filters:
+                    motivo_filtro = self.current_filters['motivo_operacion']
+                    data = [record for record in data if record.get('motivo_operacion') == motivo_filtro]
+                    logger.info(f"🔍 Filtrados {len(data)} registros por motivo_operacion='{motivo_filtro}'")
+                
                 return data
             else:
                 logger.error(f"Error en API: {response.status_code}")
@@ -197,6 +204,12 @@ class ExportService:
             # 🔥 DEBUG: Ver qué campos vienen en el registro
             logger.info(f"🔍 DEBUG - Campos disponibles: {list(record.keys())}")
             
+            # 🔥 ASIGNAR FECHA ACTUAL A FECHAREPORTE
+            from datetime import datetime
+            fecha_actual = datetime.now().strftime('%Y-%m-%d')
+            processed_record['FECHAREPORTE'] = fecha_actual
+            logger.info(f"🔅 FECHAREPORTE asignada con fecha actual: {fecha_actual}")
+            
             # 🔥 DEBUG ESPECIAL: Ver valor del campo ESTADO
             estado_valor = record.get('ESTADO', 'NO_EXISTE')
             logger.info(f"🔍 DEBUG ESPECIAL: ESTADO='{estado_valor}' (tipo: {type(estado_valor)})")
@@ -239,6 +252,12 @@ class ExportService:
             cantidad_llamadas_valor = record.get('TOTAL LLAMADAS', 0)
             biometria_valor = str(record.get('BIOMETRIA', ''))
             visitas_valor = str(record.get('VISITAS', ''))
+
+            # VARIABLES PARA ARCHIVO ENTREGAS
+            biometria_entregas = str(record.get('RESPUESTA BIOMETRIA', ''))
+
+            if biometria_entregas == 'PERSONALIZADA':
+                processed_record['RESPUESTA BIOMETRIA'] = 'HIT'
 
             var_call = ['Traslado oficina', 'Cambio total', 'Complementa direccion', 'Cita futura']
             if calificacion_call_valor in var_call:
@@ -414,14 +433,17 @@ class ExportService:
 
             elif motivos_valor is None or motivos_valor == '' or str(motivos_valor).strip() == '':
 
-                # 🔥 REGLA ESPECIAL: NO VISITADO
-                processed_record['ESTADO'] = 'EXTRAVIO'
-                processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO LLEGÓ FISICO'
+                # 🔥 VERIFICAR SI ES SERFINANZA POR NOMBRE DE ARCHIVO
+                if 'SERFINANZA_export_' in filename:
+                    # 🔥 REGLA ESPECIAL: NO VISITADO (SOLO PARA SERFINANZA)
+                    processed_record['ESTADO'] = 'EXTRAVIO'
+                    processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO LLEGÓ FISICO'
 
             elif motivos_valor == 'Destruido':
                 # 🔥 REGLA ESPECIAL: NO VISITADO
                 processed_record['ESTADO'] = 'DESTRUCCIÓN'
                 processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'DESTRUIDO SOBRE ABIERTO'
+                
                 
             
                 
@@ -521,13 +543,31 @@ class ExportService:
 
             ############ COLUMNA BIOMETRIA##############################
 
-            if biometria_valor == 'PERSONALIZADA' and motivos_valor == 'Entregado':
-                processed_record['BIOMETRIA'] = 'HIT'
-
-            else:
-                processed_record['BIOMETRIA'] = ''
+            # 🔥 SOLO CREAR BIOMETRIA SI ES SERFINANZA POR NOMBRE DE ARCHIVO
+            if 'SERFINANZA_export_' in filename:
+                if biometria_valor == 'PERSONALIZADA' and motivos_valor == 'Entregado':
+                    processed_record['BIOMETRIA'] = 'HIT'
+                else:
+                    processed_record['BIOMETRIA'] = ''
             
             processed_data.append(processed_record)
+        
+        # 🔥 ELIMINAR COLUMNAS NO MAPEADAS ANTES DE EXPORTAR
+        if config and 'column_mapping' in config:
+            column_mapping = config['column_mapping']
+            # Obtener solo las columnas que están en el mapeo
+            mapeo_inverso = {v: k for k, v in column_mapping.items()}
+            
+            for record in processed_data:
+                # Eliminar columnas que no están en el mapeo
+                columnas_a_eliminar = []
+                for columna in record.keys():
+                    if columna not in mapeo_inverso:
+                        columnas_a_eliminar.append(columna)
+                
+                for columna in columnas_a_eliminar:
+                    del record[columna]
+                    logger.info(f"🗑️ Eliminada columna no mapeada: {columna}")
         
         # Convertir a DataFrame
         df = pd.DataFrame(processed_data)

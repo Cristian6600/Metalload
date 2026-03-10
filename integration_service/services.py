@@ -56,7 +56,7 @@ class MainAPIClient:
             
             for i, payload in enumerate(client_data):
                 # 🔥 FILTRAR CAMPOS PARA SOLO INCLUIR LOS QUE ESPERA EL SERIALIZER
-                allowed_fields = ['seudo_bd', 'id_clie', 'nombre', 'surname', 'cc', 'documento', 'ciudad', 'direccion', 'telefono', 'referencia', 'nom_pro', 'tarjeta', 'marcacion', 'convenio', 'tipo_entrega']
+                allowed_fields = ['seudo_bd', 'id_clie', 'nombre', 'surname', 'cc', 'documento', 'ciudad', 'direccion', 'telefono', 'referencia', 'nom_pro', 'tarjeta', 'marcacion', 'convenio', 'tipo_entrega', 'realz']
                 filtered_payload = {}
                 
                 for field in allowed_fields:
@@ -884,7 +884,7 @@ class FileProcessor:
                 'FECHA DE ENTREGA': '2025-02-20',
                 'TEL ENTREGA': '',
                 'DIREC ENTREGA': '',
-                'HRA ENTREGA': ''
+                'HRA ENTREGA': ''   
             }
             
             expected_cols = ['REMESA', 'CUENTA 1', 'CUENTA 2', 'SEC', 'COD', 'NIT', 'NOMBRE', 
@@ -1005,6 +1005,24 @@ class FileProcessor:
                     else:
                         value = 1  # Valor por defecto para otros clientes
                         logger.info(f"🔢 id_clie por defecto 1 (cliente: {mapping.client_code})")
+                
+                # 🔥 CAMPO ESPECIAL - realz usa columna REMESA
+                elif api_field == 'realz':
+                    # 🔥 USAR VALOR DE COLUMNA REMESA DIRECTAMENTE
+                    remesa_value = self._find_column_value(df, row, 'REMESA')
+                    if remesa_value:
+                        value = str(remesa_value).strip()
+                        logger.info(f"🔢 realz desde columna REMESA: {value}")
+                    else:
+                        value = None  # Dejar vacío si no hay REMESA
+                        logger.warning(f"⚠️ Columna REMESA no encontrada, realz será None")
+                
+                # 🔥 CAMPO ESPECIAL - fecha_reporte_final usa fecha actual
+                elif api_field == 'fecha_reporte_final':
+                    # 🔥 USAR FECHA ACTUAL
+                    from datetime import datetime
+                    value = datetime.now().strftime('%Y-%m-%d')
+                    logger.info(f"📅 fecha_reporte_final usando fecha actual: {value}")
                 
                 # 🔥 CAMPO DINÁMICO - seudo_bd usa columna SEC
                 elif api_field == 'seudo_bd':
