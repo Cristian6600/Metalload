@@ -368,7 +368,7 @@ class ExportService:
 
             elif motivos_valor == 'No cobertura':
                 processed_record['ESTADO'] = 'DEVUELTO'  # 
-                processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO CUBRIMINETO'  
+                processed_record['MOTIVOS RECHAZO Y DEVUELTAS'] = 'NO CUBRIMIENTO'  
                 
             elif motivos_valor == 'Custodia' and proceso_valor == 'PERSONALIZADA':
                 # 🔥 REGLA ESPECIAL: Custodia + PERSONALIZADA
