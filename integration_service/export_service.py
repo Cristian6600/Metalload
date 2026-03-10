@@ -230,10 +230,10 @@ class ExportService:
             logger.info(f"🔍 DEBUG - Campos disponibles: {list(record.keys())}")
             
             # 🔥 ASIGNAR FECHA ACTUAL A FECHAREPORTE
-            from datetime import datetime
-            fecha_actual = datetime.now().strftime('%Y-%m-%d')
-            processed_record['FECHAREPORTE'] = fecha_actual
-            logger.info(f"🔅 FECHAREPORTE asignada con fecha actual: {fecha_actual}")
+            # from datetime import datetime
+            # fecha_actual = datetime.now().strftime('%Y-%m-%d')
+            # processed_record['FECHAREPORTE'] = fecha_actual
+            # logger.info(f"🔅 FECHAREPORTE asignada con fecha actual: {fecha_actual}")
             
             # 🔥 DEBUG ESPECIAL: Ver valor del campo ESTADO
             estado_valor = record.get('ESTADO', 'NO_EXISTE')
