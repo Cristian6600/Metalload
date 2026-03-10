@@ -298,7 +298,7 @@ class ExportService:
             #####################################################
             var_operacion = ['En ruta ciudad', 'En Ruta', 'Entregado', 'Direccion no existe', 'Cambio de domicilio', 
             'Cerrado', 'Dificil acceso', 'Radicado fuera de la ciudad', 'Destruido', 'Perdida', 'Devolucion Proveedor', 
-            'DOM. EN PROCESO DE DEVOLUCION', 'Destinatario Desconocido', 'Rehusado', 'Ausente', 'NO PASA VALIDACION BIOMETRICA', 
+            'DOM. EN PROCESO DE DEVOLUCION', 'Destinatario Desconocido', 'Rehusado', 'Ausente', 'NO PASA VALIDACION BIOMETRICA', 'No cobertura', 
             'Direccion Incompleta']
 
             if calificacion_call_valor == 'No Contesta' and cantidad_llamadas_num >= 3 and proceso_valor == 'PERSONALIZADA' and motivos_valor not in var_operacion:
