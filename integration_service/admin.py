@@ -1,8 +1,7 @@
 from django.contrib import admin
-from .models import ClientFile, ProcessingLog, ClientMapping, Report, ExportConfig, ExportHistory
+from .models import ClientFile, ClientMapping, ProcessingLog, Report, ExportConfig, ExportHistory
 
 
-@admin.register(ClientFile)
 class ClientFileAdmin(admin.ModelAdmin):
     """Admin mejorado para carga automática de archivos de clientes"""
     list_display = [
@@ -29,11 +28,11 @@ class ClientFileAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         })
     )
-    
+
     def save_model(self, request, obj, form, change):
         """Override mejorado para carga automática"""
         if not change:  # Solo al crear nuevo registro
-            # 🔥 AUTOGENERAR NOMBRE ORIGINAL DESDE EL ARCHIVO
+            # AUTOGENERAR NOMBRE ORIGINAL DESDE EL ARCHIVO
             if obj.file and not obj.original_filename:
                 obj.original_filename = obj.file.name.split('/')[-1]  # Obtener solo el nombre del archivo
             
@@ -52,9 +51,9 @@ class ClientFileAdmin(admin.ModelAdmin):
             try:
                 processor = FileProcessor()
                 processor.process_file(obj)
-                self.message_user(request, f'✅ Archivo "{obj.original_filename}" procesado automáticamente', level='SUCCESS')
+                self.message_user(request, f' Archivo "{obj.original_filename}" procesado automáticamente', level='SUCCESS')
             except Exception as e:
-                self.message_user(request, f'❌ Error procesando archivo: {str(e)}', level='ERROR')
+                self.message_user(request, f' Error procesando archivo: {str(e)}', level='ERROR')
     
     def file_size_display(self, obj):
         """Formatea el tamaño del archivo"""
@@ -75,16 +74,8 @@ class ClientFileAdmin(admin.ModelAdmin):
                 <a href="/admin/process-file/{obj.id}/" 
                    class="button" 
                    style="background-color: #f4a460; color: white; padding: 3px 8px; text-decoration: none; border-radius: 3px; font-size: 11px;">
-                    🔄 Reprocesar
+                   Reprocesar
                 </a>
-            '''
-        elif obj.status == 'completed':
-            return f'''
-                <span style="color: #28a745; font-weight: bold;">✅ Completado</span>
-            '''
-        elif obj.status == 'processing':
-            return f'''
-                <span style="color: #ffc107; font-weight: bold;">⏳ Procesando...</span>
             '''
         else:
             return f'''

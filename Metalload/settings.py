@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_filters',
     'integration_service',
+    'integration_service.contabilidad',  # 🔥 NUEVO MÓDULO CONTABILIDAD
 ]
 
 MIDDLEWARE = [

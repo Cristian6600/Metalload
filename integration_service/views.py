@@ -18,12 +18,15 @@ import logging
 import uuid
 
 from .models import ClientFile, ProcessingLog, ClientMapping, Report, ExportConfig, ExportHistory
+from .contabilidad_models import ContabilidadExportConfig, ContabilidadExportHistory
 from .serializers import (
     ClientFileSerializer, ClientFileUploadSerializer, ProcessingLogSerializer,
     ClientMappingSerializer, ReportSerializer, FileProcessingRequestSerializer
 )
 from .services import FileProcessor, ReportGenerator
 from .export_service import ExportService
+from .contabilidad_service import ContabilidadExportService
+from .contabilidad_views import export_contabilidad_admin, get_contabilidad_exports_history
 
 logger = logging.getLogger(__name__)
 

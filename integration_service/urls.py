@@ -20,4 +20,8 @@ urlpatterns = [
     # URLs de botones del admin
     path('admin/export/now/<uuid:config_id>/', views.export_now_admin, name='export-now-admin'),
     path('admin/export/download/<uuid:history_id>/', views.download_export_admin, name='download-export-admin'),
+    
+    # 🔥 URLs de CONTABILIDAD directas
+    path('admin/contabilidad/export/now/<uuid:config_id>/', views.export_contabilidad_admin, name='contabilidad-export-now'),
+    path('admin/contabilidad/history/<uuid:config_id>/', views.get_contabilidad_exports_history, name='contabilidad-history'),
 ]
