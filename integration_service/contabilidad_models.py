@@ -47,19 +47,19 @@ class ContabilidadExportConfig(models.Model):
         verbose_name="Formato de Exportación"
     )
     
-    # Filtros (misma API)
+    # Filtros y transformaciones
     default_filters = models.JSONField(
         default=dict,
+        blank=True,
         verbose_name="Filtros por Defecto",
-        help_text="Filtros que se aplican automáticamente (ej: {'id_clie': 17})"
+        help_text="Filtros que se aplican automáticamente (ej: {'id_clie': 17, 'motivo_operacion': 'Entregado', 'pub_date': '2024-01-01'})"
     )
     transformations = models.JSONField(
         default=dict,
         blank=True,
-        verbose_name="Transformaciones"
+        verbose_name="Transformaciones",
+        help_text="Reglas de transformación de datos (ej: {'ciudad': 'left_pad_5'})"
     )
-    
-    # Configuración específica de contabilidad
     excel_config = models.JSONField(
         default=dict,
         blank=True,
@@ -85,8 +85,14 @@ class ContabilidadExportConfig(models.Model):
     
     # Control
     is_active = models.BooleanField(default=True, verbose_name="Activo")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Creado")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Actualizado")
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Creado"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Actualizado"
+    )
     
     class Meta:
         verbose_name = "Configuración Exportación Contabilidad"

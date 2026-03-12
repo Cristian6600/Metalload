@@ -43,6 +43,10 @@ INSTALLED_APPS = [
     'integration_service.contabilidad',  # 🔥 NUEVO MÓDULO CONTABILIDAD
 ]
 
+# 🔥 Forzar nombre del admin
+ADMIN_SITE_TITLE = 'Metalload Administration'
+ADMIN_SITE_HEADER = 'Metalload Administration'
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
