@@ -58,7 +58,7 @@ ROOT_URLCONF = 'Metalload.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'Metalload/templates'],  # 🔥 Agregar directorio de templates
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
