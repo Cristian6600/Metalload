@@ -291,3 +291,7 @@ class ExportHistoryAdmin(admin.ModelAdmin):
         return "No disponible"
     download_button.short_description = 'Descargar'
     download_button.allow_tags = True
+
+
+# Registrar ClientFile que no tiene decorador
+admin.site.register(ClientFile, ClientFileAdmin)

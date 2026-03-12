@@ -55,6 +55,9 @@ class ContabilidadExportService(ExportService):
         for record in data:
             processed_record = record.copy()
             
+            # 🔥 AGREGAR COLUMNAS CALCULADAS
+            self._apply_calculated_columns(processed_record)
+            
             # Aplicar reglas de facturación si existen
             if config.get('billing_info'):
                 self._apply_billing_rules(processed_record, config)
@@ -66,6 +69,159 @@ class ContabilidadExportService(ExportService):
             processed_data.append(processed_record)
         
         return processed_data
+    
+    def _calcular_tarifa(self, record):
+        """
+        Calcular tarifa según COD y RANGO DE DÍAS
+        """
+        cod = record.get('COD', '')
+        rango_dias = record.get('RANGO DE DÍAS', '')
+        
+        # 🔥 Limpiar COD: tomar solo los primeros caracteres numéricos
+        cod_limpio = cod.strip()
+        if ' ' in cod_limpio:
+            cod_limpio = cod_limpio.split()[0]  # Tomar primera parte
+        
+        # Tabla de tarifas
+        tarifas = {
+            '01': {'1-3 días': '$22.700', '4-7 días': '$22.700', '8-15 días': '$22.700', '16-30 días': '$22.700', 'Más de 30 días': '$22.700'},
+            '17': {'1-3 días': '$17.796', '4-7 días': '$17.796', '8-15 días': '$17.796', '16-30 días': '$17.796', 'Más de 30 días': '$17.796'},
+            '02': {'1-3 días': '$22.700', '4-7 días': '$22.700', '8-15 días': '$22.700', '16-30 días': '$22.700', 'Más de 30 días': '$22.700'},
+            '02-1': {'1-3 días': '$22.700', '4-7 días': '$22.700', '8-15 días': '$22.700', '16-30 días': '$22.700', 'Más de 30 días': '$22.700'},
+            '06': {'1-3 días': '$22.700', '4-7 días': '$22.700', '8-15 días': '$22.700', '16-30 días': '$22.700', 'Más de 30 días': '$22.700'},
+            '05': {'1-3 días': '$22.700', '4-7 días': '$22.700', '8-15 días': '$22.700', '16-30 días': '$22.700', 'Más de 30 días': '$22.700'},
+            '04': {'1-3 días': '$22.700', '4-7 días': '$22.700', '8-15 días': '$22.700', '16-30 días': '$22.700', 'Más de 30 días': '$22.700'},
+            '15': {'1-3 días': '$8.700', '4-7 días': '$8.700', '8-15 días': '$8.700', '16-30 días': '$8.700', 'Más de 30 días': '$8.700'},
+            '03': {'1-3 días': '$22.700', '4-7 días': '$22.700', '8-15 días': '$22.700', '16-30 días': '$22.700', 'Más de 30 días': '$22.700'}
+        }
+        
+        # 🔥 DEBUG: Mostrar valores originales y limpios
+        print(f"🔥 DEBUG - COD original: '{cod}' | COD limpio: '{cod_limpio}' | RANGO: '{rango_dias}'")
+        
+        # Buscar tarifa
+        if cod_limpio in tarifas and rango_dias in tarifas[cod_limpio]:
+            tarifa = tarifas[cod_limpio][rango_dias]
+            record['TARIFA'] = tarifa
+            print(f"🔥 DEBUG - Tarifa encontrada: {tarifa}")
+        else:
+            # Si no encuentra, dejar vacío o valor por defecto
+            record['TARIFA'] = '$0.000'
+            print(f"🔥 DEBUG - Tarifa NO encontrada, usando $0.000")
+    
+    def _apply_calculated_columns(self, record):
+        """
+        Aplicar columnas calculadas específicas
+        """
+        from datetime import datetime, timedelta
+        
+        try:
+            # 📅 TOMAR FECHA DE INGRESO de la columna
+            fecha_ingreso_str = record.get('FECHA DE INGRESO', '')
+            # 📅 TOMAR FECHA DE ENTREGA de la columna
+            fecha_entrega_str = record.get('FECHA DE ENTREGA', '')
+            
+            if fecha_ingreso_str and fecha_entrega_str:
+                # Parsear fechas simples
+                fecha_ingreso = datetime.strptime(fecha_ingreso_str, '%Y-%m-%d')
+                fecha_entrega = datetime.strptime(fecha_entrega_str, '%Y-%m-%d')
+                
+                # 🧮 CÁLCULO DE DÍAS HÁBILES (primer día = 0)
+                dias_habiles = 0
+                fecha_actual = fecha_ingreso + timedelta(days=1)  # Empezar desde el día siguiente
+                
+                while fecha_actual <= fecha_entrega:
+                    # Solo contar lunes a viernes (0-4)
+                    if fecha_actual.weekday() < 5:
+                        dias_habiles += 1
+                    
+                    fecha_actual += timedelta(days=1)
+                
+                # 📊 RANGO DE DÍAS (calcular primero)
+                if dias_habiles <= 3:
+                    rango = "1-3 días"
+                elif dias_habiles <= 7:
+                    rango = "4-7 días"
+                elif dias_habiles <= 15:
+                    rango = "8-15 días"
+                elif dias_habiles <= 30:
+                    rango = "16-30 días"
+                else:
+                    rango = "Más de 30 días"
+                
+                record['RANGO DE DÍAS'] = rango
+                
+                # 🧮 CÁLCULO DE TARIFA según COD y RANGO DE DÍAS (después del rango)
+                self._calcular_tarifa(record)
+                
+                # Guardar resultado
+                record['DÍAS'] = dias_habiles
+                
+            else:
+                # Si no hay fechas, dejar valores vacíos
+                record['DÍAS'] = 0
+                record['RANGO DE DÍAS'] = ''
+            
+            # 📅 FECHA DE RADICACIÓN (usar la misma fecha de ingreso)
+            if fecha_ingreso_str:
+                record['FECHA DE RADICACIÓN'] = fecha_ingreso_str
+            else:
+                record['FECHA DE RADICACIÓN'] = ''
+            
+        except Exception as e:
+            print(f"❌ Error calculando días hábiles: {e}")
+            record['DÍAS'] = 0
+            record['RANGO DE DÍAS'] = ''
+            record['FECHA DE RADICACIÓN'] = ''
+    
+    def _calcular_dias_habiles_colombia(self, fecha_inicio, fecha_fin):
+        """
+        Calcular días hábiles entre dos fechas (sin sábados, domingos)
+        """
+        dias_habiles = 0
+        fecha_actual = fecha_inicio
+        
+        # 🔥 DEBUG: Mostrar rango completo
+        logger.info(f"🔍 DEBUG - Calculando del {fecha_inicio} al {fecha_fin}")
+        
+        while fecha_actual <= fecha_fin:
+            weekday = fecha_actual.weekday()
+            
+            # 🔥 DEBUG: Mostrar cada día
+            logger.info(f"🔍 DEBUG - Día: {fecha_actual} ({fecha_actual.strftime('%A')}) weekday:{weekday}")
+            
+            # Verificar si es día hábil (Lunes=0, Martes=1, Miércoles=2, Jueves=3, Viernes=4)
+            if weekday < 5:  # Lunes a Viernes (0-4)
+                dias_habiles += 1
+                logger.info(f"🔍 DEBUG - ✅ Día hábil contado: {dias_habiles}")
+            else:
+                logger.info(f"� DEBUG - ❌ No es día hábil (fin de semana)")
+            
+            fecha_actual += timedelta(days=1)
+        
+        logger.info(f"🔍 DEBUG - Total días hábiles: {dias_habiles}")
+        return dias_habiles
+    
+    def _calcular_dias_habiles(self, fecha_inicio, fecha_fin):
+        """
+        Calcular días hábiles entre dos fechas (sin sábados, domingos y festivos)
+        """
+        import holidays
+        
+        # Festivos de Colombia
+        co_holidays = holidays.CO()
+        
+        dias_habiles = 0
+        fecha_actual = fecha_inicio
+        
+        while fecha_actual <= fecha_fin:
+            # Verificar si es día hábil
+            if (fecha_actual.weekday() < 5 and  # Lunes a Viernes (0-4)
+                fecha_actual not in co_holidays):  # No es festivo
+                dias_habiles += 1
+            
+            fecha_actual += timedelta(days=1)
+        
+        return dias_habiles
     
     def _apply_billing_rules(self, record, config):
         """
