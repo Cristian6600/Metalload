@@ -141,12 +141,8 @@ class ContabilidadExportService(ExportService):
                     rango = "0-6 días"
                 elif dias_habiles <= 10:
                     rango = "7-10 días"
-                elif dias_habiles <= 15:
-                    rango = "11-15 días"
-                elif dias_habiles <= 30:
-                    rango = "16-30 días"
                 else:
-                    rango = "Más de 30 días"
+                    rango = "> 11 días"
                 
                 
                 record['RANGO DE DÍAS'] = rango
