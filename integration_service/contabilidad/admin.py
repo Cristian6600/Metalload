@@ -6,10 +6,32 @@ from django.urls import path
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.utils.html import format_html
+from django.contrib.admin import SimpleListFilter
+from django import forms
 import uuid
 
 from ..contabilidad_models import ContabilidadExportConfig, ContabilidadExportHistory
 from ..contabilidad_views import export_contabilidad_admin, get_contabilidad_exports_history
+
+
+# 🔥 FILTRO PERSONALIZADO PARA FECHA DE ESTADO
+class FechaEstadoDataFilter(SimpleListFilter):
+    title = 'Fecha de Estado (Datos)'
+    parameter_name = 'fecha_estado_data'
+    
+    def lookups(self, request, model_admin):
+        return [
+            ('hoy', 'Hoy'),
+            ('ayer', 'Ayer'),
+            ('ultima_semana', 'Última Semana'),
+            ('ultimo_mes', 'Último Mes'),
+            ('personalizado', 'Rango Personalizado'),
+        ]
+    
+    def queryset(self, request, queryset):
+        # Este filtro no filtra el queryset del admin
+        # Solo agrega el parámetro a la URL para que la exportación lo use
+        return queryset
 
 
 @admin.register(ContabilidadExportConfig)
@@ -26,7 +48,7 @@ class ContabilidadExportConfigAdmin(admin.ModelAdmin):
         'created_at',
         'export_button'
     ]
-    list_filter = ['export_format', 'is_active', 'created_at']
+    list_filter = ['export_format', 'is_active', 'created_at', FechaEstadoDataFilter]
     search_fields = ['client_code', 'client_name', 'report_name']
     readonly_fields = ['id', 'created_at', 'updated_at']
     
@@ -50,12 +72,14 @@ class ContabilidadExportConfigAdmin(admin.ModelAdmin):
         """Botón de exportación personalizado"""
         if obj.is_active and obj.default_filters.get('id_clie'):
             button_html = format_html(
-                '<a href="export/now/{}/" class="button" style="background-color: #4CAF50; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;">Exportar Ahora</a>',
-                obj.id
+                '<a href="/admin/contabilidad/export/now/{}/?{}" class="button" style="background-color: #417690; color: white; padding: 5px 10px; text-decoration: none; border-radius:3px;">📥 Exportar Todo</a>',
+                obj.id,
+                'fecha_estado_data=hoy'  # 🔥 Forzar filtro de hoy
             )
             return button_html
-        return "No disponible"
-    export_button.short_description = 'Acción'
+        return format_html('<span style="color: #999;">Inactivo</span>')
+    export_button.short_description = 'Exportar'
+    export_button.allow_tags = True
     
     def get_urls(self):
         """Agregar URLs personalizadas"""

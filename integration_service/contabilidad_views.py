@@ -174,7 +174,7 @@ def export_contabilidad_admin(request, config_id):
         # Iniciar servicio de exportación contabilidad
         export_service = ContabilidadExportService()
         
-        # Obtener filtros por defecto (misma API)
+        # Obtener filtros por defecto
         filters = export_config.default_filters
         client_id = filters.get('id_clie')
         
@@ -189,6 +189,62 @@ def export_contabilidad_admin(request, config_id):
         
         if not api_data:
             return JsonResponse({'error': 'No se encontraron datos'}, status=404)
+        
+        # 🔥 FILTRAR POR FECHA USANDO EL MAPEO DINÁMICO
+        # Obtener el campo de fecha del mapeo JSON
+        campo_fecha = None
+        if export_config.column_mapping:
+            campo_fecha = export_config.column_mapping.get("FECHA DE ENTREGA")
+        
+        # 🔥 Detectar filtros del admin
+        fecha_desde = request.GET.get('created_at__gte')
+        fecha_hasta = request.GET.get('created_at__lt')
+        
+        # 🔥 Detectar filtros personalizados de fecha_estado
+        filtro_estado = request.GET.get('fecha_estado_data')
+        
+        if filtro_estado and campo_fecha:
+            from datetime import date, timedelta
+            hoy = date.today()
+            
+            if filtro_estado == 'hoy':
+                fecha_desde = hoy.isoformat()
+                fecha_hasta = hoy.isoformat()
+            elif filtro_estado == 'ayer':
+                ayer = hoy - timedelta(days=1)
+                fecha_desde = ayer.isoformat()
+                fecha_hasta = ayer.isoformat()
+            elif filtro_estado == 'ultima_semana':
+                semana_pasada = hoy - timedelta(days=7)
+                fecha_desde = semana_pasada.isoformat()
+                fecha_hasta = hoy.isoformat()
+            elif filtro_estado == 'ultimo_mes':
+                mes_pasado = hoy - timedelta(days=30)
+                fecha_desde = mes_pasado.isoformat()
+                fecha_hasta = hoy.isoformat()
+        
+        if campo_fecha and (fecha_desde or fecha_hasta):
+            print(f"🔥🔥🔥 Filtrando por {campo_fecha} - Desde: {fecha_desde} | Hasta: {fecha_hasta}")
+            
+            filtered_data = []
+            for record in api_data:
+                fecha_valor = record.get(campo_fecha, '')
+                
+                if fecha_valor:
+                    # Aplicar filtros de fecha
+                    incluir = True
+                    
+                    if fecha_desde and fecha_valor < fecha_desde:
+                        incluir = False
+                    
+                    if fecha_hasta and fecha_valor > fecha_hasta:
+                        incluir = False
+                    
+                    if incluir:
+                        filtered_data.append(record)
+            
+            api_data = filtered_data
+            print(f"🔥🔥🔥 Datos después de filtrar por {campo_fecha}: {len(api_data)}")
         
         # Aplicar transformaciones si existen
         if export_config.transformations:
