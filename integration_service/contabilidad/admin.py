@@ -69,13 +69,66 @@ class ContabilidadExportConfigAdmin(admin.ModelAdmin):
     )
     
     def export_button(self, obj):
-        """Botón de exportación personalizado"""
+        """Botón de exportación personalizado con selector de rango de fechas"""
         if obj.is_active and obj.default_filters.get('id_clie'):
-            button_html = format_html(
-                '<a href="/admin/contabilidad/export/now/{}/?{}" class="button" style="background-color: #417690; color: white; padding: 5px 10px; text-decoration: none; border-radius:3px;">📥 Exportar Todo</a>',
-                obj.id,
-                'fecha_estado_data=hoy'  # 🔥 Forzar filtro de hoy
-            )
+            button_html = format_html('''
+                <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                    <a href="javascript:void(0);" 
+                       onclick="showDateRangeModal('{}')"
+                       class="button" 
+                       style="background-color: #417690; color: white; padding: 5px 10px; text-decoration: none; border-radius:3px;">
+                        📅 Exportar con Rango
+                    </a>
+                </div>
+                
+                <!-- Modal de Rango de Fechas -->
+                <div id="dateRangeModal_{}" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999;">
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; min-width: 400px;">
+                        <h3 style="margin-top: 0;">📅 Seleccionar Rango de Fechas</h3>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px;"><strong>Fecha Inicio:</strong></label>
+                            <input type="date" id="fecha_inicio_{}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px;"><strong>Fecha Fin:</strong></label>
+                            <input type="date" id="fecha_fin_{}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                            <button onclick="closeDateRangeModal('{}')" style="padding: 8px 16px; border: 1px solid #ddd; background: #f5f5f5; border-radius: 4px; cursor: pointer;">Cancelar</button>
+                            <button onclick="exportWithDateRange('{}')" style="padding: 8px 16px; background: #417690; color: white; border: none; border-radius: 4px; cursor: pointer;">Exportar</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <script>
+                    function showDateRangeModal(configId) {{
+                        document.getElementById('dateRangeModal_' + configId).style.display = 'block';
+                    }}
+                    
+                    function closeDateRangeModal(configId) {{
+                        document.getElementById('dateRangeModal_' + configId).style.display = 'none';
+                    }}
+                    
+                    function exportWithDateRange(configId) {{
+                        var fechaInicio = document.getElementById('fecha_inicio_' + configId).value;
+                        var fechaFin = document.getElementById('fecha_fin_' + configId).value;
+                        
+                        if (!fechaInicio || !fechaFin) {{
+                            alert('Por favor selecciona ambas fechas');
+                            return;
+                        }}
+                        
+                        var url = '/admin/contabilidad/export/now/' + configId + '/?fecha_desde=' + fechaInicio + '&fecha_hasta=' + fechaFin;
+                        console.log('🔥 URL generada:', url);
+                        
+                        // 🔥 Abrir en nueva pestaña para ver si descarga
+                        window.open(url, '_blank');
+                    }}
+                </script>
+            ''', obj.id, obj.id, obj.id, obj.id, obj.id, obj.id)
             return button_html
         return format_html('<span style="color: #999;">Inactivo</span>')
     export_button.short_description = 'Exportar'

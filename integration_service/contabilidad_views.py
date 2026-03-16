@@ -165,10 +165,18 @@ def export_contabilidad_admin(request, config_id):
     URL: /admin/contabilidad/export/now/{config_id}/
     """
     try:
+        # 🔥 DEBUG: Mostrar que se ejecuta esta función
+        print(f"🔥🔥🔥 EJECUTANDO export_contabilidad_admin")
+        print(f"🔥🔥🔥 Config ID: {config_id}")
+        print(f"🔥🔥🔥 Request method: {request.method}")
+        print(f"🔥🔥🔥 Request GET params: {dict(request.GET)}")
+        
         # Obtener configuración
         export_config = get_object_or_404(ContabilidadExportConfig, id=config_id)
+        print(f"🔥🔥🔥 Config encontrada: {export_config.client_code}")
         
         if not export_config.is_active:
+            print(f"🔥🔥🔥 Config inactiva")
             return JsonResponse({'error': 'Configuración inactiva'}, status=400)
         
         # Iniciar servicio de exportación contabilidad
@@ -177,17 +185,21 @@ def export_contabilidad_admin(request, config_id):
         # Obtener filtros por defecto
         filters = export_config.default_filters
         client_id = filters.get('id_clie')
+        print(f"🔥🔥🔥 Client ID: {client_id}")
         
         # 🔥 PASAR FILTROS AL SERVICIO
         export_service.current_filters = filters
         
         if not client_id:
+            print(f"🔥🔥🔥 No hay client_id")
             return JsonResponse({'error': 'No hay id_clie configurado'}, status=400)
         
         # Obtener datos de la MISMA API
         api_data = export_service.fetch_client_data(int(client_id))
+        print(f"🔥🔥🔥 Datos obtenidos: {len(api_data) if api_data else 0}")
         
         if not api_data:
+            print(f"🔥🔥🔥 No se encontraron datos")
             return JsonResponse({'error': 'No se encontraron datos'}, status=404)
         
         # 🔥 FILTRAR POR FECHA USANDO EL MAPEO DINÁMICO
@@ -196,11 +208,17 @@ def export_contabilidad_admin(request, config_id):
         if export_config.column_mapping:
             campo_fecha = export_config.column_mapping.get("FECHA DE ENTREGA")
         
-        # 🔥 Detectar filtros del admin
-        fecha_desde = request.GET.get('created_at__gte')
-        fecha_hasta = request.GET.get('created_at__lt')
+        print(f"🔥🔥🔥 Campo de fecha del mapeo: {campo_fecha}")
         
-        # 🔥 Detectar filtros personalizados de fecha_estado
+        # 🔥 Detectar filtros personalizados del rango de fechas
+        fecha_desde = request.GET.get('fecha_desde')
+        fecha_hasta = request.GET.get('fecha_hasta')
+        
+        # 🔥 DEBUG: Mostrar parámetros recibidos
+        print(f"🔥🔥🔥 Parámetros recibidos - fecha_desde: {fecha_desde} | fecha_hasta: {fecha_hasta}")
+        print(f"🔥🔥🔥 Todos los GET params: {dict(request.GET)}")
+        
+        # 🔥 Detectar filtros del admin (compatibilidad)
         filtro_estado = request.GET.get('fecha_estado_data')
         
         if filtro_estado and campo_fecha:
@@ -223,12 +241,19 @@ def export_contabilidad_admin(request, config_id):
                 fecha_desde = mes_pasado.isoformat()
                 fecha_hasta = hoy.isoformat()
         
+        # 🔥 DEBUG: Mostrar valores finales
+        print(f"🔥🔥🔥 Valores finales - campo_fecha: {campo_fecha} | fecha_desde: {fecha_desde} | fecha_hasta: {fecha_hasta}")
+        
         if campo_fecha and (fecha_desde or fecha_hasta):
-            print(f"🔥🔥🔥 Filtrando por {campo_fecha} - Desde: {fecha_desde} | Hasta: {fecha_hasta}")
+            print(f"🔥🔥🔥 Aplicando filtro por {campo_fecha} - Desde: {fecha_desde} | Hasta: {fecha_hasta}")
             
             filtered_data = []
-            for record in api_data:
+            for i, record in enumerate(api_data):
                 fecha_valor = record.get(campo_fecha, '')
+                
+                # 🔥 DEBUG: Mostrar primeros registros
+                if i < 3:
+                    print(f"🔥🔥🔥 Registro {i}: {campo_fecha} = '{fecha_valor}'")
                 
                 if fecha_valor:
                     # Aplicar filtros de fecha
@@ -236,15 +261,29 @@ def export_contabilidad_admin(request, config_id):
                     
                     if fecha_desde and fecha_valor < fecha_desde:
                         incluir = False
+                        print(f"🔥🔥🔥 Excluido por fecha_desde: {fecha_valor} < {fecha_desde}")
                     
                     if fecha_hasta and fecha_valor > fecha_hasta:
                         incluir = False
+                        print(f"🔥🔥🔥 Excluido por fecha_hasta: {fecha_valor} > {fecha_hasta}")
                     
                     if incluir:
                         filtered_data.append(record)
+                        if i < 3:
+                            print(f"🔥🔥🔥 Incluido registro {i}")
             
             api_data = filtered_data
-            print(f"🔥🔥🔥 Datos después de filtrar por {campo_fecha}: {len(api_data)}")
+            print(f"🔥🔥🔥 Datos después de filtrar por {campo_fecha}: {len(api_data)} (de {len(api_data) + len(filtered_data)} originales)")
+        else:
+            print(f"🔥🔥🔥 No se aplicó filtro de fecha - campo_fecha: {campo_fecha} | fecha_desde: {fecha_desde} | fecha_hasta: {fecha_hasta}")
+        
+        # 🔥 VERIFICAR SI HAY DATOS DESPUÉS DEL FILTRO
+        if not api_data:
+            print(f"🔥🔥🔥 No hay datos después del filtro - Mostrando mensaje al usuario")
+            return JsonResponse({
+                'error': 'No hay datos para exportar en el rango de fechas seleccionado',
+                'message': f'No se encontraron registros con {campo_fecha} entre {fecha_desde} y {fecha_hasta}'
+            }, status=400)
         
         # Aplicar transformaciones si existen
         if export_config.transformations:
@@ -296,16 +335,72 @@ def export_contabilidad_admin(request, config_id):
         
         # Preparar respuesta para descarga
         filepath = Path(filepath)
+        print(f"🔥🔥🔥 Archivo generado: {filepath}")
+        print(f"🔥🔥🔥 Archivo existe: {filepath.exists()}")
+        
         if filepath.exists():
             with open(filepath, 'rb') as f:
-                response = HttpResponse(f.read(), content_type='application/octet-stream')
+                file_content = f.read()
+                
+                # 🔥 FORZAR DESCARGA DIRECTA
+                response = HttpResponse(
+                    file_content, 
+                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
                 response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                response['Content-Length'] = len(file_content)
+                response['Cache-Control'] = 'private, no-cache, no-store, must-revalidate'
+                response['Pragma'] = 'no-cache'
+                response['Expires'] = '0'
+                response['X-Content-Type-Options'] = 'nosniff'
+                response['X-Download-Options'] = 'noopen'
+                
+                print(f"🔥🔥🔥 Response FORZADO para descarga directa: {filename} - Tamaño: {len(file_content)} bytes")
                 return response
         else:
+            print(f"🔥🔥🔥 Archivo no encontrado: {filepath}")
             return JsonResponse({'error': 'Archivo no encontrado'}, status=404)
         
     except Exception as e:
         logger.error(f"Error en exportación contabilidad: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@staff_member_required
+def download_contabilidad_history(request, history_id):
+    """
+    Descargar archivo del historial contabilidad
+    URL: /admin/contabilidad/download-history/{history_id}/
+    """
+    try:
+        # Obtener historial
+        history = get_object_or_404(ContabilidadExportHistory, id=history_id)
+        
+        # Verificar que el archivo exista
+        filepath = Path(history.file_path)
+        if not filepath.exists():
+            return JsonResponse({'error': 'Archivo no encontrado'}, status=404)
+        
+        # Preparar respuesta para descarga forzada
+        with open(filepath, 'rb') as f:
+            file_content = f.read()
+            
+            response = HttpResponse(
+                file_content, 
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{history.filename}"'
+            response['Content-Length'] = len(file_content)
+            response['Cache-Control'] = 'private, no-cache, no-store, must-revalidate'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
+            response['X-Content-Type-Options'] = 'nosniff'
+            response['X-Download-Options'] = 'noopen'
+            
+            return response
+            
+    except Exception as e:
+        logger.error(f"Error en descarga de historial contabilidad: {e}")
         return JsonResponse({'error': str(e)}, status=500)
 
 

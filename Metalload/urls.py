@@ -19,12 +19,14 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from integration_service import views as integration_views
+from integration_service.contabilidad_views import download_contabilidad_history
 
 urlpatterns = [
     # URLs personalizadas del admin (deben ir PRIMERO)
     path('admin/export/now/<uuid:config_id>/', integration_views.export_now_admin, name='export-now-admin'),
     path('admin/export/download/<uuid:history_id>/', integration_views.download_export_admin, name='download-export-admin'),
     path('admin/contabilidad/export/now/<uuid:config_id>/', integration_views.export_contabilidad_admin, name='contabilidad-export-now'),
+    path('admin/contabilidad/download-history/<uuid:history_id>/', download_contabilidad_history, name='contabilidad-download-history'),
     path('admin/contabilidad/history/<uuid:config_id>/', integration_views.get_contabilidad_exports_history, name='contabilidad-history'),
     path('admin/', admin.site.urls),
     path('', include('integration_service.urls')),
