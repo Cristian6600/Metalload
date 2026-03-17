@@ -34,7 +34,9 @@ class Command(BaseCommand):
             "fecha_marcacion_telefonica": "FECHA MARCACION TELEFONICA",
             "biometria": "BIOMETRIA",
             "cd_proceso": "CD PROCESO",
-            "descripcion_proceso": "DESCRIPCIÓN PROCESO"
+            "descripcion_proceso": "DESCRIPCIÓN PROCESO",
+            "archivo": "SEC",
+
         }
         
         # Actualizar mapeo para CLIENTE_REMESA
