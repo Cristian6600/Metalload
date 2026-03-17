@@ -9,6 +9,7 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from .models import ClientFile, ProcessingLog, ClientMapping, Report
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -1065,6 +1066,7 @@ class FileProcessor:
             original_pseudo_bd = record.get('seudo_bd', '')
             if original_pseudo_bd:
                 # Verificar si ya existe este seudo_bd en registros anteriores
+
                 suffix = 0
                 current_pseudo_bd = original_pseudo_bd
                 
@@ -1073,7 +1075,8 @@ class FileProcessor:
                 logger.info(f"🔍 DEBUG duplicados: seudo_bd actual={current_pseudo_bd}, existentes={existing_pseudo_bds[:5]}...")
                 
                 while current_pseudo_bd in existing_pseudo_bds:
-                    suffix += 1
+                    digitos_aleatorios = random.randint(1, 15)
+                    suffix = 1 + digitos_aleatorios
                     current_pseudo_bd = f"{original_pseudo_bd}{suffix}"
                     logger.info(f"🔄 Duplicado encontrado: {original_pseudo_bd} → {current_pseudo_bd}")
                 
