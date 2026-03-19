@@ -83,7 +83,26 @@ class MainAPIClient:
                     logger.info(f"✅ Registro {i+1} enviado exitosamente (status: {response.status_code})")
                 else:
                     error_count += 1
-                    error_msg = f"❌ Error en registro {i+1}: {response.status_code} - {response.text}"
+                    # 🔥 PROCESAR ERRORES ESPECÍFICOS DE LA API
+                    try:
+                        error_data = response.json()
+                        formatted_errors = []
+                        
+                        # Extraer errores específicos de la API
+                        for field, messages in error_data.items():
+                            if isinstance(messages, list):
+                                for msg in messages:
+                                    formatted_errors.append(f"{field}: {msg}")
+                            else:
+                                formatted_errors.append(f"{field}: {messages}")
+                        
+                        if formatted_errors:
+                            error_msg = f"❌ Error en registro {i+1}: {response.status_code} - {' | '.join(formatted_errors)}"
+                        else:
+                            error_msg = f"❌ Error en registro {i+1}: {response.status_code} - {response.text}"
+                    except:
+                        error_msg = f"❌ Error en registro {i+1}: {response.status_code} - {response.text}"
+                    
                     logger.error(error_msg)
                     errors.append(error_msg)
             
@@ -1070,8 +1089,12 @@ class FileProcessor:
                 suffix = 0
                 current_pseudo_bd = original_pseudo_bd
                 
-                # Buscar duplicados en los registros ya procesados
-                existing_pseudo_bds = [existing_record.get('seudo_bd', '') for existing_record in original_data]
+                # Buscar duplicados en los registros ya procesados (EXCLUYENDO el actual)
+                existing_pseudo_bds = [
+                    existing_record.get('seudo_bd', '')
+                    for existing_record in original_data
+                    if existing_record is not record  # excluye el registro actual
+                ]
                 logger.info(f"🔍 DEBUG duplicados: seudo_bd actual={current_pseudo_bd}, existentes={existing_pseudo_bds[:5]}...")
                 
                 while current_pseudo_bd in existing_pseudo_bds:
