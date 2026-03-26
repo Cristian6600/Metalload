@@ -1081,37 +1081,7 @@ class FileProcessor:
                     record['seudo_bd'] = f"DEFAULT{int(time.time())}"
                     logger.warning(f"⚠️ seudo_bd por defecto en _extract_original_fields: {record['seudo_bd']}")
             
-            # 🔥 VALIDACIÓN DE DUPLICADOS PARA seudo_bd - ELIMINADA POR SOLICITUD
-            original_pseudo_bd = record.get('seudo_bd', '')
-            if original_pseudo_bd:
-                # Verificar si ya existe este seudo_bd en registros anteriores
-
-                suffix = 0
-                current_pseudo_bd = original_pseudo_bd
-                
-                # Buscar duplicados en los registros ya procesados (EXCLUYENDO el actual)
-                existing_pseudo_bds = [
-                    existing_record.get('seudo_bd', '')
-                    for existing_record in original_data
-                    if existing_record is not record  # excluye el registro actual
-                ]
-                logger.info(f"🔍 DEBUG duplicados: seudo_bd actual={current_pseudo_bd}, existentes={existing_pseudo_bds[:5]}...")
-                
-                while current_pseudo_bd in existing_pseudo_bds:
-                    digitos_aleatorios = random.randint(1, 15)
-                    suffix = 1 + digitos_aleatorios
-                    current_pseudo_bd = f"{original_pseudo_bd}{suffix}"
-                    logger.info(f"🔄 Duplicado encontrado: {original_pseudo_bd} → {current_pseudo_bd}")
-                
-                # Actualizar el registro si se modificó
-                if current_pseudo_bd != original_pseudo_bd:
-                    record['seudo_bd'] = current_pseudo_bd
-                    logger.info(f"✅ seudo_bd ajustado por duplicado: {original_pseudo_bd} → {current_pseudo_bd}")
-                else:
-                    logger.info(f"✅ seudo_bd único (en archivo): {current_pseudo_bd}")
-            else:
-                logger.warning(f"⚠️ seudo_bd vacío, no se puede validar duplicados")
-            
+                        
             # 🔥 DEBUG ESPECIAL - Verificar campos requeridos
             required_fields = ['seudo_bd', 'id_clie', 'nombre', 'ciudad']
             missing_fields = [field for field in required_fields if field not in record or not record[field]]
