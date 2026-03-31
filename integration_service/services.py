@@ -1065,21 +1065,6 @@ class FileProcessor:
             if i == 0:
                 logger.info(f"📋 Primer registro extraído: {record}")
                 logger.info(f"🌐 Payload completo que se enviará: {original_data[:3]}")  # Primeros 3 registros
-                # 🔥 ASEGURAR seudo_bd si está vacío
-            if not record.get('seudo_bd') or record['seudo_bd'] == 'TEMP_SEUDO_BD':
-                # Generar seudo_bd único aquí
-                cuenta1 = record.get('cuenta1', '')
-                cc = record.get('cc', '')
-                if cuenta1 and cc:
-                    ultimos_4_digitos = cuenta1[-4:] if len(cuenta1) >= 4 else cuenta1
-                    if not ultimos_4_digitos:
-                        ultimos_4_digitos = '0000'
-                    timestamp_suffix = str(int(time.time()))[-3:]
-                    record['seudo_bd'] = f"{ultimos_4_digitos}{cc}{timestamp_suffix}"
-                    logger.info(f"🔢 seudo_bd generado en _extract_original_fields: {record['seudo_bd']}")
-                else:
-                    record['seudo_bd'] = f"DEFAULT{int(time.time())}"
-                    logger.warning(f"⚠️ seudo_bd por defecto en _extract_original_fields: {record['seudo_bd']}")
             
                         
             # 🔥 DEBUG ESPECIAL - Verificar campos requeridos
@@ -1090,8 +1075,6 @@ class FileProcessor:
                 logger.error(f"❌ REGISTRO COMPLETO en _extract_original_fields: {record}")
             else:
                 logger.info(f"✅ Todos los campos requeridos presentes en _extract_original_fields: {required_fields}")
-            
-            original_data.append(record)
         
         logger.info(f"✅ Extraídos {len(original_data)} registros con campos originales")
         logger.info(f"🌐 Enviando payload completo: {original_data}")
